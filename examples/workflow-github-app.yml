@@ -1,0 +1,33 @@
+# Org-wide access via a GitHub App instead of a PAT — the robust path:
+# no coupling to a human account, 1-hour auto-revoked tokens, higher rate
+# limits. Create an app with read-only Metadata/Pull requests/Issues/Contents
+# permissions, install it on all repos, and store APP_ID + private key.
+name: Weekly report (GitHub App auth)
+
+on:
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint an installation token scoped to the whole org
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.REPORT_APP_ID }}
+          private-key: ${{ secrets.REPORT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }} # empty `repositories` = all org repos
+
+      - uses: OWNER/weekly-report@v1 # ← replace OWNER after publishing
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          language: es
+          timezone: America/Montevideo

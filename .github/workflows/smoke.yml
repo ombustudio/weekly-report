@@ -1,0 +1,25 @@
+name: Smoke test
+
+# Weekly dry-run of the action against this repo's owner using the default
+# GITHUB_TOKEN (sees public repos only — enough to prove the pipeline runs
+# end-to-end: collection, metrics, render, summary).
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC (odd minute on purpose)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run the action (dry run, metrics-only)
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          llm-provider: none
+          dry-run: 'true'

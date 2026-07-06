@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generateWorkflow > snapshot: full-featured Spanish workflow 1`] = `
+"name: Weekly report
+on:
+  schedule:
+    - cron: 17 9 * * 1 # GitHub cron runs in UTC and is best-effort (5-30 min delays are normal)
+  workflow_dispatch:
+    inputs:
+      start-date:
+        description: Custom window start (YYYY-MM-DD, optional)
+        required: false
+      end-date:
+        description: Custom window end (YYYY-MM-DD, optional)
+        required: false
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: acme/weekly-report@v1
+        with:
+          github-token: \${{ secrets.ORG_REPORT_GITHUB_TOKEN }}
+          org: acme
+          anthropic-api-key: \${{ secrets.ANTHROPIC_API_KEY }}
+          language: es
+          period: biweekly
+          timezone: America/Montevideo
+          slack-webhook-url: \${{ secrets.SLACK_WEBHOOK_URL }}
+          resend-api-key: \${{ secrets.RESEND_API_KEY }}
+          email-to: equipo@acme.dev
+          email-from: Reportes <reportes@acme.dev>
+          start-date: \${{ inputs.start-date }}
+          end-date: \${{ inputs.end-date }}
+"
+`;

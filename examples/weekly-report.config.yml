@@ -1,0 +1,70 @@
+# Optional rich configuration — save as .github/weekly-report.yml in the repo
+# that runs the workflow. Every key is optional; values below are the defaults.
+# Precedence: action inputs > this file > built-in defaults.
+# SECURITY: secrets NEVER go here — keys matching *key*/*token*/*webhook* are
+# rejected with a warning. Pass secrets as action inputs only.
+
+timezone: UTC # IANA, e.g. America/Montevideo
+language: en # en | es
+period: weekly # daily | weekly | biweekly | monthly | custom
+biweekly-anchor: even # even | odd ISO week (only for period: biweekly)
+
+repos:
+  include: ['*'] # name globs
+  exclude: [] # e.g. ['*-archive', 'sandbox-*']
+  skip-archived: true
+  skip-forks: true
+
+levels: # report cuts
+  org: true
+  repo: true
+  person: true
+
+highlights: # bool shorthand or object with params
+  oldest-open-pr: { enabled: true, min-age-days: 14, ignore-drafts: true }
+  top-merger: { enabled: true, podium: 1 }
+  top-reviewer: { enabled: true, podium: 1 }
+  stale-prs: { enabled: true, threshold-days: 7, max-listed: 5 }
+  biggest-pr: { enabled: true, exclude-bots: true }
+  fastest-review: { enabled: true, min-minutes: 10 }
+  first-time-contributors: true
+  most-active-repo: true
+
+people:
+  exclude: [] # logins opted out of the person cut (privacy)
+  exclude-bots: true
+  bot-patterns: ['*[bot]', 'dependabot*', 'renovate*']
+  max-listed: 20
+
+report:
+  title: '{org} Engineering Report — {period-label}'
+  repos-max: 25 # table rows before the long-tail rollup
+  narrated-repos: 5 # repos that get an LLM blurb
+
+llm:
+  provider: auto # auto | anthropic | openai | none
+  model: '' # empty = provider default
+  max-input-tokens: 16000
+  max-output-tokens: 2000
+  titles-per-repo: 10
+  tone: professional-warm # professional-warm | neutral | playful
+  custom-instructions: ''
+
+slack:
+  top-highlights: 3
+  report-url: '' # override the "full report" link (default: workflow run)
+
+email:
+  to: [] # required to send (or use the email-to input)
+  from: '' # Resend-verified sender
+  reply-to: ''
+  subject: '{org} engineering report — {period-label}'
+
+limits:
+  max-repos: 200
+  max-prs: 1000
+
+output:
+  job-summary: true
+  artifact: true
+  artifact-name: weekly-report

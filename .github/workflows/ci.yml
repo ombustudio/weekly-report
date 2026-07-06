@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    name: Action (typecheck, lint, test, dist gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+
+      - name: Ensure committed dist/ is up to date
+        run: |
+          if ! git diff --exit-code dist/; then
+            echo "::error::dist/ is stale. Run 'npm run build' and commit the result."
+            exit 1
+          fi
+
+  web:
+    name: Configurator (typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      # Root install too: web imports the action's src/schema (single source
+      # of truth), whose bare imports resolve from the root node_modules.
+      - run: npm ci
+      - run: npm ci --prefix web
+      - run: npm run typecheck --prefix web
+      - run: npm run test --prefix web
+      - run: npm run build --prefix web

@@ -1,0 +1,49 @@
+# Minimal setup: weekly report every Monday, delivered to Slack + email.
+# Save as .github/workflows/weekly-report.yml in any repo of your org
+# (a dedicated "reports" repo works great).
+name: Weekly report
+
+on:
+  schedule:
+    - cron: '17 9 * * 1' # Mondays 09:17 UTC — odd minute avoids GitHub's cron rush
+  workflow_dispatch:
+    inputs:
+      start-date:
+        description: 'Custom window start (YYYY-MM-DD, optional)'
+        required: false
+      end-date:
+        description: 'Custom window end (YYYY-MM-DD, optional)'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: OWNER/weekly-report@v1 # ← replace OWNER after publishing
+        with:
+          # Org-wide read access. The default GITHUB_TOKEN only sees THIS repo —
+          # create an org fine-grained PAT (All repositories; read-only:
+          # Metadata, Pull requests, Issues, Contents) and store it as a secret.
+          github-token: ${{ secrets.ORG_REPORT_GITHUB_TOKEN }}
+
+          # LLM narrative — pass one of the two:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+
+          # Delivery
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          resend-api-key: ${{ secrets.RESEND_API_KEY }}
+          email-to: team@yourcompany.com
+          email-from: 'Reports <reports@yourcompany.com>'
+
+          # Options (all optional — these are the defaults)
+          period: weekly
+          language: en # or: es
+          timezone: UTC # e.g. America/Montevideo
+
+          # Custom window when triggered manually:
+          start-date: ${{ inputs.start-date }}
+          end-date: ${{ inputs.end-date }}
