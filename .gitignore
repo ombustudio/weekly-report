@@ -1,0 +1,11 @@
+# deps
+node_modules/
+web/node_modules/
+
+# build output — dist/ (action bundle) IS committed by policy; web build is not
+web/dist/
+
+# tooling
+coverage/
+*.log
+.DS_Store

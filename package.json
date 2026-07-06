@@ -1,0 +1,38 @@
+{
+  "name": "org-weekly-report-action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Org-wide activity digest GitHub Action with an LLM-written narrative (Claude or OpenAI). Delivers to Slack, email (Resend), job summary and artifact.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node24 --format=esm --outfile=dist/index.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src __tests__",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@actions/artifact": "^6.2.1",
+    "@actions/core": "^3.0.1",
+    "@octokit/core": "^7.0.2",
+    "@octokit/plugin-paginate-rest": "^13.0.1",
+    "@octokit/plugin-retry": "^8.0.1",
+    "@octokit/plugin-throttling": "^11.0.1",
+    "yaml": "^2.8.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.5",
+    "eslint": "^9.30.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.35.0",
+    "vitest": "^3.2.0"
+  }
+}

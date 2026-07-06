@@ -1,0 +1,93 @@
+# Generated from src/schema — if you edit inputs here, update src/schema/inputs.ts
+# (the drift test in __tests__/action-yml-drift.test.ts enforces parity).
+name: Org Weekly Report (AI)
+description: Org-wide activity digest with an LLM-written narrative (Claude or OpenAI). Collects
+  PRs, issues, reviews and commits across all org repos and delivers to Slack, email (Resend), the
+  job summary and an artifact. Reports in English or Spanish.
+author: punchup
+branding:
+  icon: bar-chart-2
+  color: purple
+inputs:
+  github-token:
+    description: "Token with org-wide read access. The default GITHUB_TOKEN only sees the current repo —
+      for org-wide reports pass an org fine-grained PAT (All repositories: Metadata, Pull requests,
+      Issues, Contents — read-only) or a GitHub App token from actions/create-github-app-token."
+    required: true
+  org:
+    description: Organization login to report on. Defaults to the owner of the repository running the workflow.
+    default: ${{ github.repository_owner }}
+  anthropic-api-key:
+    description: Anthropic API key. Provide this OR openai-api-key. With neither, the report is
+      metrics-only (with a warning).
+  openai-api-key:
+    description: OpenAI API key. Provide this OR anthropic-api-key.
+  llm-provider:
+    description: auto | anthropic | openai | none. 'auto' picks whichever key is present (Anthropic wins
+      ties). 'none' forces metrics-only.
+    default: auto
+  model:
+    description: "Model override for the selected provider. Defaults: claude-sonnet-4-5 (Anthropic),
+      gpt-4o-mini (OpenAI)."
+  language:
+    description: "Report language: en | es"
+    default: en
+  report-levels:
+    description: "Comma-separated cuts to include: org, repo, person. Default: all three."
+    default: org,repo,person
+  highlights:
+    description: "'all', 'none', or comma-separated highlight ids: oldest-open-pr, top-merger,
+      top-reviewer, stale-prs, biggest-pr, fastest-review, first-time-contributors,
+      most-active-repo. Thresholds tunable in the config file."
+    default: all
+  period:
+    description: daily | weekly | biweekly | monthly | custom. The reporting window is the previous
+      COMPLETE calendar period in `timezone` — never inferred from the cron.
+    default: weekly
+  start-date:
+    description: ISO date (YYYY-MM-DD), required when period=custom. Interpreted in `timezone`.
+  end-date:
+    description: ISO date (YYYY-MM-DD), required when period=custom. Inclusive.
+  timezone:
+    description: IANA timezone for window boundaries and displayed dates.
+    default: UTC
+  repos-include:
+    description: "Comma/newline-separated repo name globs (e.g. 'api-*, web'). Default: all org repos."
+    default: "*"
+  repos-exclude:
+    description: Comma/newline-separated repo name globs to exclude (e.g. '*-archive, sandbox-*').
+    default: ""
+  slack-webhook-url:
+    description: Slack incoming webhook URL. Receives a condensed Block Kit summary linking to the full report.
+  resend-api-key:
+    description: Resend API key for email delivery of the full HTML report.
+  email-to:
+    description: Comma-separated recipient addresses (required if resend-api-key is set).
+  email-from:
+    description: Verified sender, e.g. 'Reports <reports@yourdomain.com>' (required if resend-api-key is set).
+  email-subject:
+    description: "Subject template. Placeholders: {org} {start} {end} {period-label}."
+    default: "{org} engineering report — {period-label}"
+  config-file:
+    description: Path (in this repo) of the optional rich config file, fetched via the Contents API at
+      runtime — no checkout needed.
+    default: .github/weekly-report.yml
+  dry-run:
+    description: Collect, aggregate and render, write job summary + artifact, but skip Slack/email
+      delivery AND the LLM call.
+    default: "false"
+outputs:
+  report-markdown-path:
+    description: Absolute path of the rendered markdown report file.
+  report-html-path:
+    description: Absolute path of the rendered HTML report file.
+  metrics-json-path:
+    description: Absolute path of the raw metrics JSON (for downstream steps).
+  delivery-status:
+    description: JSON per channel, e.g. {"slack":"ok","email":"failed","summary":"ok","artifact":"ok"}
+  llm-usage:
+    description: 'JSON:
+      {"provider":"anthropic","model":"claude-sonnet-4-5","inputTokens":6200,"outputTokens":1400,"estimatedCostUsd":0.04}'
+runs:
+  using: node24
+  main: dist/index.js
