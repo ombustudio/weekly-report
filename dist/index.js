@@ -67139,7 +67139,7 @@ var CONFIG_DEFAULTS = {
   people: {
     exclude: [],
     excludeBots: true,
-    botPatterns: ["*[bot]", "dependabot*", "renovate*"],
+    botPatterns: ["*[bot]", "dependabot*", "renovate*", "copilot*"],
     maxListed: 20
   },
   report: {
@@ -70846,13 +70846,15 @@ ${escapeMrkdwn(value)}`
     const top = report.highlights.slice(0, report.slackTopHighlights);
     if (top.length > 0) {
       blocks2.push({ type: "divider" });
-      blocks2.push({
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: top.map((h) => `\u2022 ${truncate3(mdToMrkdwn(renderHighlight(h, report).split("\n")[0]), 500)}`).join("\n")
-        }
-      });
+      for (const h of top) {
+        blocks2.push({
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `\u2022 ${truncate3(mdToMrkdwn(renderHighlight(h, report).split("\n")[0]), 2900)}`
+          }
+        });
+      }
     }
   }
   blocks2.push({

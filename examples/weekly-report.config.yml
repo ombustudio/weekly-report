@@ -33,7 +33,7 @@ highlights: # bool shorthand or object with params
 people:
   exclude: [] # logins opted out of the person cut (privacy)
   exclude-bots: true
-  bot-patterns: ['*[bot]', 'dependabot*', 'renovate*']
+  bot-patterns: ['*[bot]', 'dependabot*', 'renovate*', 'copilot*']
   max-listed: 20
 
 report:

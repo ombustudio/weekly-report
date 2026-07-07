@@ -39,8 +39,34 @@ describe('slack renderer', () => {
 
   it('builds a compact block set with fallback text', () => {
     expect(payload.text).toContain('acme');
-    expect(payload.blocks.length).toBeLessThanOrEqual(9);
+    // header + context + summary + divider + fields + divider + 3 highlights + link
+    expect(payload.blocks.length).toBeLessThanOrEqual(12);
     expect(payload.blocks[0]).toMatchObject({ type: 'header' });
+  });
+
+  it('each highlight gets its own section (all 8 fit under Slack limits)', () => {
+    const config = testConfig({}, { slack: { 'top-highlights': 8 } });
+    const data = busyWeek();
+    const metrics = aggregate(data, config);
+    const full = buildSlackPayload(
+      buildReport({
+        data,
+        metrics,
+        highlights: computeHighlights(data, metrics, config, NOW),
+        config,
+        narrative: null,
+        narrativeStatus: 'skipped-no-key',
+        llmUsage: null,
+        runUrl: 'https://x.y/run'
+      })
+    );
+    expect(full.blocks.length).toBeLessThanOrEqual(20); // well under Slack's 50
+    const sections = JSON.stringify(full.blocks);
+    expect(sections).toContain('Most active repo'); // highlight #8 present now
+    for (const block of full.blocks) {
+      const text = (block as { text?: { text?: string } }).text?.text ?? '';
+      expect(text.length).toBeLessThanOrEqual(3000); // Slack per-section cap
+    }
   });
 
   it('caps key-number fields at 10 (Slack limit)', () => {

@@ -132,7 +132,7 @@ export const CONFIG_DEFAULTS: ConfigDefaults = {
   people: {
     exclude: [],
     excludeBots: true,
-    botPatterns: ['*[bot]', 'dependabot*', 'renovate*'],
+    botPatterns: ['*[bot]', 'dependabot*', 'renovate*', 'copilot*'],
     maxListed: 20
   },
   report: {

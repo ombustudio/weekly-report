@@ -78,19 +78,20 @@ export function buildSlackPayload(report: Report): SlackPayload {
       });
     }
 
-    // Top-N highlights
+    // Top-N highlights — one section per highlight so even all 8 stay far
+    // under Slack's 3000-char-per-section limit (block budget: ~15 of 50).
     const top = report.highlights.slice(0, report.slackTopHighlights);
     if (top.length > 0) {
       blocks.push({ type: 'divider' });
-      blocks.push({
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: top
-            .map((h) => `• ${truncate(mdToMrkdwn(renderHighlight(h, report).split('\n')[0]!), 500)}`)
-            .join('\n')
-        }
-      });
+      for (const h of top) {
+        blocks.push({
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `• ${truncate(mdToMrkdwn(renderHighlight(h, report).split('\n')[0]!), 2900)}`
+          }
+        });
+      }
     }
   }
 
