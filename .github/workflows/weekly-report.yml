@@ -25,6 +25,7 @@ jobs:
           language: es
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          slack-channel: C08KPEWFQH0
+          slack-channel: C0BF44GN7TR
           start-date: ${{ inputs.start-date }}
           end-date: ${{ inputs.end-date }}
+
