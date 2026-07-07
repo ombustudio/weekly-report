@@ -48,6 +48,15 @@ export const configFileSchema = z
     'end-date': isoDate.optional(),
     'biweekly-anchor': z.enum(['even', 'odd']).optional(),
 
+    branches: z
+      .object({
+        production: z.array(z.string()).optional(),
+        staging: z.array(z.string()).optional(),
+        'commit-priority': z.array(z.string()).optional()
+      })
+      .strict()
+      .optional(),
+
     repos: z
       .object({
         include: z.array(z.string()).optional(),

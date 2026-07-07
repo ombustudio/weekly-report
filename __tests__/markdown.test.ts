@@ -59,7 +59,9 @@ describe('renderMarkdown', () => {
     const md = renderMarkdown(report);
     expect(md).toContain('| PRs merged | 4 |');
     expect(md).toContain('| PRs opened | 3 |');
-    expect(md).toContain('| Commits (default branches) | 76 |');
+    expect(md).toContain('| Commits (work branches) | 76 |');
+    expect(md).toContain('| Merged to production | 1 |');
+    expect(md).toContain('| Merged to staging | 3 |');
   });
 
   it('handles a totally empty window without crashing', () => {

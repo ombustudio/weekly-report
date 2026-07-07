@@ -160,6 +160,8 @@ export function aggregate(data: CollectedData, config: ResolvedConfig): Aggregat
   const org: OrgMetrics = {
     prsOpened: data.prsOpened.length,
     prsMerged: data.prsMerged.length,
+    mergedToProduction: data.prsMerged.filter((pr) => matchesAny(pr.baseRef, config.branches.production)).length,
+    mergedToStaging: data.prsMerged.filter((pr) => matchesAny(pr.baseRef, config.branches.staging)).length,
     openPrTotal: data.openPrTotalCount,
     issuesOpened: data.issuesOpened.length,
     issuesClosed: data.issuesClosed.length,

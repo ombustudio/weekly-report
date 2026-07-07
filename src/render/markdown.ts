@@ -65,6 +65,13 @@ export function keyNumberRows(report: Report): Array<[string, string]> {
   const m = report.orgMetrics;
   const rows: Array<[string, string]> = [
     [t(lang, 'metric.prsMerged'), n(m.prsMerged)],
+    // Branch-model split only when the org actually merges into staging bases
+    ...(m.mergedToStaging > 0
+      ? ([
+          [t(lang, 'metric.mergedToProduction'), n(m.mergedToProduction)],
+          [t(lang, 'metric.mergedToStaging'), n(m.mergedToStaging)]
+        ] as Array<[string, string]>)
+      : []),
     [t(lang, 'metric.prsOpened'), n(m.prsOpened)],
     [t(lang, 'metric.openPrTotal'), n(m.openPrTotal)],
     [t(lang, 'metric.reviewsSubmitted'), n(m.reviewsSubmitted)],
@@ -165,6 +172,7 @@ export function renderMarkdown(report: Report): string {
             url: pr.url,
             title: mdEscapeInline(pr.title),
             author: pr.author,
+            base: mdEscapeInline(pr.baseRef || '—'),
             additions: n(pr.additions),
             deletions: n(pr.deletions),
             date: pr.mergedAt ? shortDate(pr.mergedAt.slice(0, 10), lang) : '—'

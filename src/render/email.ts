@@ -144,6 +144,7 @@ export function renderEmailHtml(report: Report): string {
             url: pr.url,
             title: pr.title,
             author: pr.author,
+            base: pr.baseRef || '—',
             additions: n(pr.additions),
             deletions: n(pr.deletions),
             date: pr.mergedAt ? shortDate(pr.mergedAt.slice(0, 10), lang) : '—'

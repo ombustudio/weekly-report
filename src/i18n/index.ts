@@ -18,10 +18,12 @@ const STRINGS = {
     // Key numbers labels
     'metric.prsOpened': 'PRs opened',
     'metric.prsMerged': 'PRs merged',
+    'metric.mergedToProduction': 'Merged to production',
+    'metric.mergedToStaging': 'Merged to staging',
     'metric.openPrTotal': 'PRs currently open',
     'metric.issuesOpened': 'Issues opened',
     'metric.issuesClosed': 'Issues closed',
-    'metric.commits': 'Commits (default branches)',
+    'metric.commits': 'Commits (work branches)',
     'metric.reviewsSubmitted': 'Reviews submitted',
     'metric.linesChanged': 'Lines changed (merged PRs)',
     'metric.medianTimeToMerge': 'Median time to merge',
@@ -71,7 +73,7 @@ const STRINGS = {
     'appendix.window': 'Window: {startDate} → {endDate} ({timezone}) — previous complete {period}.',
     'appendix.repos': 'Repos scanned: {scanned} (after include/exclude filters).',
     'appendix.method':
-      'Numbers are computed deterministically from the GitHub API (Search + GraphQL); the LLM writes narrative only and never computes figures. Review counts cover the first 50 reviews per PR. Person-level commit counts are not attributed in v1.',
+      'Numbers are computed deterministically from the GitHub API (Search + GraphQL); the LLM writes narrative only and never computes figures. Review counts cover the first 50 reviews per PR. Commits are counted on each repo’s work branch (develop/development/staging, configurable) falling back to its default branch. Person-level commit counts are not attributed in v1.',
     'appendix.llmUsage': 'LLM: {provider} {model} — {inputTokens} in / {outputTokens} out tokens{cost}.',
     'appendix.llmCost': ' (~${cost} estimated)',
     'appendix.warnings': 'Collection warnings:',
@@ -111,10 +113,12 @@ const STRINGS = {
 
     'metric.prsOpened': 'PRs abiertos',
     'metric.prsMerged': 'PRs mergeados',
+    'metric.mergedToProduction': 'Mergeados a producción',
+    'metric.mergedToStaging': 'Mergeados a staging',
     'metric.openPrTotal': 'PRs abiertos actualmente',
     'metric.issuesOpened': 'Issues abiertos',
     'metric.issuesClosed': 'Issues cerrados',
-    'metric.commits': 'Commits (ramas principales)',
+    'metric.commits': 'Commits (ramas de trabajo)',
     'metric.reviewsSubmitted': 'Reviews realizadas',
     'metric.linesChanged': 'Líneas modificadas (PRs mergeados)',
     'metric.medianTimeToMerge': 'Mediana de tiempo a merge',
@@ -148,7 +152,7 @@ const STRINGS = {
 
     'section.mergedPrs': 'PRs mergeados por repositorio',
     'mergedPrs.summary': '📦 Ver los {total} PRs mergeados (detalle por repositorio)',
-    'mergedPrs.item': '[{repo}#{number}]({url}) “{title}” — @{author} (+{additions}/−{deletions}, {date})',
+    'mergedPrs.item': '[{repo}#{number}]({url}) “{title}” — @{author} → {base} (+{additions}/−{deletions}, {date})',
     'mergedPrs.more': '…y {count} más',
 
     'narrative.skipped-no-key': '_Sin API key de LLM — este reporte es solo de métricas. Agregá anthropic-api-key u openai-api-key para el resumen narrativo._',
@@ -159,7 +163,7 @@ const STRINGS = {
     'appendix.window': 'Ventana: {startDate} → {endDate} ({timezone}) — período completo anterior: {period}.',
     'appendix.repos': 'Repos analizados: {scanned} (después de filtros include/exclude).',
     'appendix.method':
-      'Los números se calculan de forma determinística desde la API de GitHub (Search + GraphQL); el LLM solo escribe narrativa y nunca calcula cifras. Los conteos de reviews cubren las primeras 50 por PR. Los commits por persona no se atribuyen en v1.',
+      'Los números se calculan de forma determinística desde la API de GitHub (Search + GraphQL); el LLM solo escribe narrativa y nunca calcula cifras. Los conteos de reviews cubren las primeras 50 por PR. Los commits se cuentan sobre la rama de trabajo de cada repo (develop/development/staging, configurable) con fallback a su rama default. Los commits por persona no se atribuyen en v1.',
     'appendix.llmUsage': 'LLM: {provider} {model} — {inputTokens} tokens de entrada / {outputTokens} de salida{cost}.',
     'appendix.llmCost': ' (~${cost} estimado)',
     'appendix.warnings': 'Advertencias de recolección:',

@@ -29,6 +29,8 @@ export interface PrLite {
   mergedAt: string | null;
   closedAt: string | null;
   isDraft: boolean;
+  /** Branch the PR targets (merge destination). */
+  baseRef: string;
   additions: number;
   deletions: number;
   mergedBy: string | null;

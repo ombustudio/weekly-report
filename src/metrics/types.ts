@@ -8,6 +8,9 @@ import type { ReportWindow } from '../util/time.js';
 export interface OrgMetrics {
   prsOpened: number;
   prsMerged: number;
+  /** Merged PRs whose base matches branches.production / branches.staging. */
+  mergedToProduction: number;
+  mergedToStaging: number;
   /** Org-wide currently-open PR total (true count, not fetch-capped). */
   openPrTotal: number;
   issuesOpened: number;
@@ -70,6 +73,7 @@ export interface MergedPrDetail {
   title: string;
   url: string;
   author: string;
+  baseRef: string;
   mergedAt: string;
   additions: number;
   deletions: number;

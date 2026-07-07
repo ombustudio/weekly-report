@@ -13,6 +13,8 @@ describe('aggregate', () => {
   it('computes org totals', () => {
     expect(m.org.prsOpened).toBe(3);
     expect(m.org.prsMerged).toBe(4);
+    expect(m.org.mergedToStaging).toBe(3); // PRs 1, 2 and the bot bump target develop
+    expect(m.org.mergedToProduction).toBe(1); // PR 3 targets main
     expect(m.org.openPrTotal).toBe(3);
     expect(m.org.issuesOpened).toBe(2);
     expect(m.org.issuesClosed).toBe(1);

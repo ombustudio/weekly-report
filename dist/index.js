@@ -67072,6 +67072,11 @@ var configFileSchema = external_exports.object({
   "start-date": isoDate.optional(),
   "end-date": isoDate.optional(),
   "biweekly-anchor": external_exports.enum(["even", "odd"]).optional(),
+  branches: external_exports.object({
+    production: external_exports.array(external_exports.string()).optional(),
+    staging: external_exports.array(external_exports.string()).optional(),
+    "commit-priority": external_exports.array(external_exports.string()).optional()
+  }).strict().optional(),
   repos: external_exports.object({
     include: external_exports.array(external_exports.string()).optional(),
     exclude: external_exports.array(external_exports.string()).optional(),
@@ -67136,6 +67141,11 @@ var CONFIG_DEFAULTS = {
   biweeklyAnchor: "even",
   repos: { include: ["*"], exclude: [], skipArchived: true, skipForks: true },
   levels: { org: true, repo: true, person: true },
+  branches: {
+    production: ["main", "master"],
+    staging: ["develop", "development", "staging"],
+    commitPriority: ["develop", "development", "staging"]
+  },
   people: {
     exclude: [],
     excludeBots: true,
@@ -67595,6 +67605,11 @@ function resolveConfig(opts) {
       skipForks: file.repos?.["skip-forks"] ?? d.repos.skipForks
     },
     levels,
+    branches: {
+      production: file.branches?.production ?? d.branches.production,
+      staging: file.branches?.staging ?? d.branches.staging,
+      commitPriority: file.branches?.["commit-priority"] ?? d.branches.commitPriority
+    },
     highlights: resolveHighlights(explicit["highlights"] ? values["highlights"] : void 0, file.highlights),
     people: {
       exclude: file.people?.exclude ?? d.people.exclude,
@@ -69137,6 +69152,7 @@ fragment PrFields on PullRequest {
   mergedAt
   closedAt
   isDraft
+  baseRefName
   additions
   deletions
   authorAssociation
@@ -69179,7 +69195,17 @@ query SearchIssues($q: String!, $first: Int!, $after: String) {
     }
   }
 }`;
-function buildRepoStatsQuery(org, repoNames) {
+function buildRepoStatsQuery(org, repoNames, commitBranches) {
+  const branchFields = commitBranches.map(
+    (branch, j) => `
+    b${j}: ref(qualifiedName: ${JSON.stringify(`refs/heads/${branch}`)}) {
+      target {
+        ... on Commit {
+          history(since: $since, until: $until) { totalCount }
+        }
+      }
+    }`
+  ).join("");
   const fields = repoNames.map(
     (name, i) => `
   r${i}: repository(owner: ${JSON.stringify(org)}, name: ${JSON.stringify(name)}) {
@@ -69191,7 +69217,7 @@ function buildRepoStatsQuery(org, repoNames) {
           history(since: $since, until: $until) { totalCount }
         }
       }
-    }
+    }${branchFields}
   }`
   ).join("\n");
   return `query RepoStats($since: GitTimestamp!, $until: GitTimestamp!) {${fields}
@@ -69226,6 +69252,7 @@ function toPrLite(node) {
     mergedAt: node.mergedAt,
     closedAt: node.closedAt,
     isDraft: node.isDraft,
+    baseRef: node.baseRefName ?? "",
     additions: node.additions,
     deletions: node.deletions,
     mergedBy: node.mergedBy?.login ?? null,
@@ -69328,12 +69355,12 @@ async function listOrgRepos(client2, config, org, warnings) {
   }
   return capped.map((r) => ({ name: r.name, archived: r.archived, fork: r.fork, isPrivate: r.private }));
 }
-async function collectRepoStats(client2, org, repoNames, window2, warnings) {
+async function collectRepoStats(client2, org, repoNames, commitBranches, window2, warnings) {
   const commitsByRepo = {};
   const openPrCountByRepo = {};
   for (let i = 0; i < repoNames.length; i += REPO_STATS_BATCH) {
     const batch = repoNames.slice(i, i + REPO_STATS_BATCH);
-    const query = buildRepoStatsQuery(org, batch);
+    const query = buildRepoStatsQuery(org, batch, commitBranches);
     let result;
     try {
       result = await client2.graphql(query, {
@@ -69349,7 +69376,15 @@ async function collectRepoStats(client2, org, repoNames, window2, warnings) {
     for (const value of Object.values(result)) {
       if (!value) continue;
       openPrCountByRepo[value.name] = value.pullRequests.totalCount;
-      commitsByRepo[value.name] = value.defaultBranchRef?.target?.history.totalCount ?? 0;
+      let commits = null;
+      for (let j = 0; j < commitBranches.length; j += 1) {
+        const ref = value[`b${j}`];
+        if (ref?.target) {
+          commits = ref.target.history.totalCount;
+          break;
+        }
+      }
+      commitsByRepo[value.name] = commits ?? value.defaultBranchRef?.target?.history.totalCount ?? 0;
     }
   }
   return { commitsByRepo, openPrCountByRepo };
@@ -69399,6 +69434,7 @@ async function collectOrg(client2, config, org, window2) {
     client2,
     org,
     repos.map((r) => r.name),
+    config.branches.commitPriority,
     window2,
     warnings
   );
@@ -70029,6 +70065,8 @@ function aggregate(data, config) {
   const org = {
     prsOpened: data.prsOpened.length,
     prsMerged: data.prsMerged.length,
+    mergedToProduction: data.prsMerged.filter((pr) => matchesAny(pr.baseRef, config.branches.production)).length,
+    mergedToStaging: data.prsMerged.filter((pr) => matchesAny(pr.baseRef, config.branches.staging)).length,
     openPrTotal: data.openPrTotalCount,
     issuesOpened: data.issuesOpened.length,
     issuesClosed: data.issuesClosed.length,
@@ -70164,10 +70202,12 @@ var STRINGS = {
     // Key numbers labels
     "metric.prsOpened": "PRs opened",
     "metric.prsMerged": "PRs merged",
+    "metric.mergedToProduction": "Merged to production",
+    "metric.mergedToStaging": "Merged to staging",
     "metric.openPrTotal": "PRs currently open",
     "metric.issuesOpened": "Issues opened",
     "metric.issuesClosed": "Issues closed",
-    "metric.commits": "Commits (default branches)",
+    "metric.commits": "Commits (work branches)",
     "metric.reviewsSubmitted": "Reviews submitted",
     "metric.linesChanged": "Lines changed (merged PRs)",
     "metric.medianTimeToMerge": "Median time to merge",
@@ -70211,7 +70251,7 @@ var STRINGS = {
     // Appendix
     "appendix.window": "Window: {startDate} \u2192 {endDate} ({timezone}) \u2014 previous complete {period}.",
     "appendix.repos": "Repos scanned: {scanned} (after include/exclude filters).",
-    "appendix.method": "Numbers are computed deterministically from the GitHub API (Search + GraphQL); the LLM writes narrative only and never computes figures. Review counts cover the first 50 reviews per PR. Person-level commit counts are not attributed in v1.",
+    "appendix.method": "Numbers are computed deterministically from the GitHub API (Search + GraphQL); the LLM writes narrative only and never computes figures. Review counts cover the first 50 reviews per PR. Commits are counted on each repo\u2019s work branch (develop/development/staging, configurable) falling back to its default branch. Person-level commit counts are not attributed in v1.",
     "appendix.llmUsage": "LLM: {provider} {model} \u2014 {inputTokens} in / {outputTokens} out tokens{cost}.",
     "appendix.llmCost": " (~${cost} estimated)",
     "appendix.warnings": "Collection warnings:",
@@ -70247,10 +70287,12 @@ var STRINGS = {
     "section.appendix": "Ap\xE9ndice \u2014 metodolog\xEDa y salvedades",
     "metric.prsOpened": "PRs abiertos",
     "metric.prsMerged": "PRs mergeados",
+    "metric.mergedToProduction": "Mergeados a producci\xF3n",
+    "metric.mergedToStaging": "Mergeados a staging",
     "metric.openPrTotal": "PRs abiertos actualmente",
     "metric.issuesOpened": "Issues abiertos",
     "metric.issuesClosed": "Issues cerrados",
-    "metric.commits": "Commits (ramas principales)",
+    "metric.commits": "Commits (ramas de trabajo)",
     "metric.reviewsSubmitted": "Reviews realizadas",
     "metric.linesChanged": "L\xEDneas modificadas (PRs mergeados)",
     "metric.medianTimeToMerge": "Mediana de tiempo a merge",
@@ -70281,7 +70323,7 @@ var STRINGS = {
     "highlight.entry": "@{login} ({count})",
     "section.mergedPrs": "PRs mergeados por repositorio",
     "mergedPrs.summary": "\u{1F4E6} Ver los {total} PRs mergeados (detalle por repositorio)",
-    "mergedPrs.item": "[{repo}#{number}]({url}) \u201C{title}\u201D \u2014 @{author} (+{additions}/\u2212{deletions}, {date})",
+    "mergedPrs.item": "[{repo}#{number}]({url}) \u201C{title}\u201D \u2014 @{author} \u2192 {base} (+{additions}/\u2212{deletions}, {date})",
     "mergedPrs.more": "\u2026y {count} m\xE1s",
     "narrative.skipped-no-key": "_Sin API key de LLM \u2014 este reporte es solo de m\xE9tricas. Agreg\xE1 anthropic-api-key u openai-api-key para el resumen narrativo._",
     "narrative.skipped-dry-run": "_Dry run \u2014 se omiti\xF3 la narrativa del LLM._",
@@ -70289,7 +70331,7 @@ var STRINGS = {
     "narrative.failed": "_Fall\xF3 la llamada al LLM; se muestran solo m\xE9tricas. Ver el log del run para m\xE1s detalle._",
     "appendix.window": "Ventana: {startDate} \u2192 {endDate} ({timezone}) \u2014 per\xEDodo completo anterior: {period}.",
     "appendix.repos": "Repos analizados: {scanned} (despu\xE9s de filtros include/exclude).",
-    "appendix.method": "Los n\xFAmeros se calculan de forma determin\xEDstica desde la API de GitHub (Search + GraphQL); el LLM solo escribe narrativa y nunca calcula cifras. Los conteos de reviews cubren las primeras 50 por PR. Los commits por persona no se atribuyen en v1.",
+    "appendix.method": "Los n\xFAmeros se calculan de forma determin\xEDstica desde la API de GitHub (Search + GraphQL); el LLM solo escribe narrativa y nunca calcula cifras. Los conteos de reviews cubren las primeras 50 por PR. Los commits se cuentan sobre la rama de trabajo de cada repo (develop/development/staging, configurable) con fallback a su rama default. Los commits por persona no se atribuyen en v1.",
     "appendix.llmUsage": "LLM: {provider} {model} \u2014 {inputTokens} tokens de entrada / {outputTokens} de salida{cost}.",
     "appendix.llmCost": " (~${cost} estimado)",
     "appendix.warnings": "Advertencias de recolecci\xF3n:",
@@ -70397,6 +70439,7 @@ function buildReport(opts) {
           title: pr.title,
           url: pr.url,
           author: pr.author,
+          baseRef: pr.baseRef,
           mergedAt: pr.mergedAt ?? "",
           additions: pr.additions,
           deletions: pr.deletions
@@ -70479,6 +70522,11 @@ function keyNumberRows(report) {
   const m = report.orgMetrics;
   const rows = [
     [t(lang, "metric.prsMerged"), n(m.prsMerged)],
+    // Branch-model split only when the org actually merges into staging bases
+    ...m.mergedToStaging > 0 ? [
+      [t(lang, "metric.mergedToProduction"), n(m.mergedToProduction)],
+      [t(lang, "metric.mergedToStaging"), n(m.mergedToStaging)]
+    ] : [],
     [t(lang, "metric.prsOpened"), n(m.prsOpened)],
     [t(lang, "metric.openPrTotal"), n(m.openPrTotal)],
     [t(lang, "metric.reviewsSubmitted"), n(m.reviewsSubmitted)],
@@ -70565,6 +70613,7 @@ function renderMarkdown(report) {
             url: pr.url,
             title: mdEscapeInline(pr.title),
             author: pr.author,
+            base: mdEscapeInline(pr.baseRef || "\u2014"),
             additions: n(pr.additions),
             deletions: n(pr.deletions),
             date: pr.mergedAt ? shortDate(pr.mergedAt.slice(0, 10), lang) : "\u2014"
@@ -70734,6 +70783,7 @@ function renderEmailHtml(report) {
             url: pr.url,
             title: pr.title,
             author: pr.author,
+            base: pr.baseRef || "\u2014",
             additions: n2(pr.additions),
             deletions: n2(pr.deletions),
             date: pr.mergedAt ? shortDate(pr.mergedAt.slice(0, 10), lang) : "\u2014"

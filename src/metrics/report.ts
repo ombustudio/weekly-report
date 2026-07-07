@@ -66,6 +66,7 @@ export function buildReport(opts: BuildReportOptions): Report {
           title: pr.title,
           url: pr.url,
           author: pr.author,
+          baseRef: pr.baseRef,
           mergedAt: pr.mergedAt ?? '',
           additions: pr.additions,
           deletions: pr.deletions

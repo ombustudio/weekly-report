@@ -43,6 +43,15 @@ export interface ResolvedConfig {
 
   levels: { org: boolean; repo: boolean; person: boolean };
 
+  branches: {
+    /** Merges into these bases count as production deliveries. */
+    production: string[];
+    /** Merges into these bases count as staging work. */
+    staging: string[];
+    /** Commits are counted on the first existing of these; fallback = default branch. */
+    commitPriority: string[];
+  };
+
   highlights: ResolvedHighlights;
 
   people: {
@@ -113,6 +122,7 @@ export interface ConfigDefaults {
   biweeklyAnchor: 'even' | 'odd';
   repos: ResolvedConfig['repos'];
   levels: ResolvedConfig['levels'];
+  branches: ResolvedConfig['branches'];
   people: ResolvedConfig['people'];
   report: ResolvedConfig['report'];
   llm: Omit<ResolvedConfig['llm'], 'anthropicApiKey' | 'openaiApiKey'>;
@@ -129,6 +139,11 @@ export const CONFIG_DEFAULTS: ConfigDefaults = {
   biweeklyAnchor: 'even',
   repos: { include: ['*'], exclude: [], skipArchived: true, skipForks: true },
   levels: { org: true, repo: true, person: true },
+  branches: {
+    production: ['main', 'master'],
+    staging: ['develop', 'development', 'staging'],
+    commitPriority: ['develop', 'development', 'staging']
+  },
   people: {
     exclude: [],
     excludeBots: true,

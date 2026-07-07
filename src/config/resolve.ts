@@ -289,6 +289,12 @@ export function resolveConfig(opts: ResolveOptions): ResolvedConfig {
 
     levels,
 
+    branches: {
+      production: file.branches?.production ?? d.branches.production,
+      staging: file.branches?.staging ?? d.branches.staging,
+      commitPriority: file.branches?.['commit-priority'] ?? d.branches.commitPriority
+    },
+
     highlights: resolveHighlights(explicit['highlights'] ? values['highlights'] : undefined, file.highlights),
 
     people: {

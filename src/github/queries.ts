@@ -18,6 +18,7 @@ fragment PrFields on PullRequest {
   mergedAt
   closedAt
   isDraft
+  baseRefName
   additions
   deletions
   authorAssociation
@@ -68,7 +69,19 @@ query SearchIssues($q: String!, $first: Int!, $after: String) {
  * open-PR count. Repos are aliased r0..rN (~100 per query, 1-2 pages for a
  * 200-repo org).
  */
-export function buildRepoStatsQuery(org: string, repoNames: string[]): string {
+export function buildRepoStatsQuery(org: string, repoNames: string[], commitBranches: string[]): string {
+  const branchFields = commitBranches
+    .map(
+      (branch, j) => `
+    b${j}: ref(qualifiedName: ${JSON.stringify(`refs/heads/${branch}`)}) {
+      target {
+        ... on Commit {
+          history(since: $since, until: $until) { totalCount }
+        }
+      }
+    }`
+    )
+    .join('');
   const fields = repoNames
     .map(
       (name, i) => `
@@ -81,7 +94,7 @@ export function buildRepoStatsQuery(org: string, repoNames: string[]): string {
           history(since: $since, until: $until) { totalCount }
         }
       }
-    }
+    }${branchFields}
   }`
     )
     .join('\n');

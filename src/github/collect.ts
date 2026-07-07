@@ -27,6 +27,7 @@ interface GraphQlPrNode {
   mergedAt: string | null;
   closedAt: string | null;
   isDraft: boolean;
+  baseRefName: string;
   additions: number;
   deletions: number;
   authorAssociation: string;
@@ -69,6 +70,7 @@ function toPrLite(node: GraphQlPrNode): PrLite {
     mergedAt: node.mergedAt,
     closedAt: node.closedAt,
     isDraft: node.isDraft,
+    baseRef: node.baseRefName ?? '',
     additions: node.additions,
     deletions: node.deletions,
     mergedBy: node.mergedBy?.login ?? null,
@@ -204,6 +206,7 @@ async function collectRepoStats(
   client: GitHubClient,
   org: string,
   repoNames: string[],
+  commitBranches: string[],
   window: ReportWindow,
   warnings: string[]
 ): Promise<{ commitsByRepo: Record<string, number>; openPrCountByRepo: Record<string, number> }> {
@@ -212,14 +215,16 @@ async function collectRepoStats(
 
   for (let i = 0; i < repoNames.length; i += REPO_STATS_BATCH) {
     const batch = repoNames.slice(i, i + REPO_STATS_BATCH);
-    const query = buildRepoStatsQuery(org, batch);
+    const query = buildRepoStatsQuery(org, batch, commitBranches);
+    type RefNode = { target: { history: { totalCount: number } } | null } | null;
     type RepoStatsResult = Record<
       string,
-      {
-        name: string;
-        pullRequests: { totalCount: number };
-        defaultBranchRef: { target: { history: { totalCount: number } } | null } | null;
-      } | null
+      | ({
+          name: string;
+          pullRequests: { totalCount: number };
+          defaultBranchRef: RefNode;
+        } & Record<`b${number}`, RefNode>)
+      | null
     >;
     let result: RepoStatsResult;
     try {
@@ -240,7 +245,18 @@ async function collectRepoStats(
     for (const value of Object.values(result)) {
       if (!value) continue;
       openPrCountByRepo[value.name] = value.pullRequests.totalCount;
-      commitsByRepo[value.name] = value.defaultBranchRef?.target?.history.totalCount ?? 0;
+      // Work-branch priority (develop > development > staging by default):
+      // in gitflow the work branch contains everything, so it is the honest
+      // activity count; repos without one fall back to their default branch.
+      let commits: number | null = null;
+      for (let j = 0; j < commitBranches.length; j += 1) {
+        const ref = value[`b${j}` as `b${number}`];
+        if (ref?.target) {
+          commits = ref.target.history.totalCount;
+          break;
+        }
+      }
+      commitsByRepo[value.name] = commits ?? value.defaultBranchRef?.target?.history.totalCount ?? 0;
     }
   }
 
@@ -303,6 +319,7 @@ async function collectOrg(
     client,
     org,
     repos.map((r) => r.name),
+    config.branches.commitPriority,
     window,
     warnings
   );
