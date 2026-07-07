@@ -186,6 +186,23 @@ export const INPUT_DEFS: readonly InputDef[] = [
     group: 'delivery'
   },
   {
+    key: 'slack-bot-token',
+    description:
+      'Slack BOT token (xoxb-…, files:write scope) — only needed to upload the report PDF to Slack; the webhook alone cannot attach files.',
+    required: false,
+    secret: true,
+    suggestedSecretName: 'SLACK_BOT_TOKEN',
+    group: 'delivery'
+  },
+  {
+    key: 'slack-channel',
+    description:
+      'Channel ID (C0XXXXXXX) where the PDF is uploaded (required with slack-bot-token; invite the bot to that channel).',
+    required: false,
+    secret: false,
+    group: 'delivery'
+  },
+  {
     key: 'resend-api-key',
     description: 'Resend API key for email delivery of the full HTML report.',
     required: false,
@@ -247,6 +264,7 @@ export const OUTPUT_DEFS: readonly OutputDef[] = [
   { key: 'report-markdown-path', description: 'Absolute path of the rendered markdown report file.' },
   { key: 'report-html-path', description: 'Absolute path of the rendered HTML report file.' },
   { key: 'metrics-json-path', description: 'Absolute path of the raw metrics JSON (for downstream steps).' },
+  { key: 'report-pdf-path', description: 'Absolute path of the PDF (empty when no Chrome was available on the runner).' },
   {
     key: 'delivery-status',
     description: 'JSON per channel, e.g. {"slack":"ok","email":"failed","summary":"ok","artifact":"ok"}'

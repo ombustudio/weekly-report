@@ -482,9 +482,26 @@ export function App() {
           <Section step={6} title="Delivery">
             <Toggle checked={v.slackEnabled} onChange={(x) => set({ slackEnabled: x })} label="Slack (incoming webhook)" />
             {v.slackEnabled && (
-              <Field label="Secret name for the webhook URL">
-                <TextInput mono value={v.slackSecret} onInput={(x) => set({ slackSecret: x })} />
-              </Field>
+              <>
+                <Field label="Secret name for the webhook URL">
+                  <TextInput mono value={v.slackSecret} onInput={(x) => set({ slackSecret: x })} />
+                </Field>
+                <Toggle
+                  checked={v.slackPdfEnabled}
+                  onChange={(x) => set({ slackPdfEnabled: x })}
+                  label="Also upload the report as PDF (for non-technical folks — needs a bot token)"
+                />
+                {v.slackPdfEnabled && (
+                  <div class="row">
+                    <Field label="Secret name for the bot token">
+                      <TextInput mono value={v.slackBotSecret} onInput={(x) => set({ slackBotSecret: x })} />
+                    </Field>
+                    <Field label="Channel ID" hint="Right-click the channel → Copy link → C0XXXXXXX.">
+                      <TextInput mono value={v.slackChannel} onInput={(x) => set({ slackChannel: x })} placeholder="C0XXXXXXX" />
+                    </Field>
+                  </div>
+                )}
+              </>
             )}
             <Toggle checked={v.emailEnabled} onChange={(x) => set({ emailEnabled: x })} label="Email (via Resend)" />
             {v.emailEnabled && (

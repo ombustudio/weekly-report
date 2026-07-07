@@ -258,6 +258,12 @@ export function resolveConfig(opts: ResolveOptions): ResolvedConfig {
     }
   }
 
+  if (values['slack-bot-token'] && !values['slack-channel']) {
+    throw new ActionError('E_BAD_INPUT', 'slack-bot-token is set but slack-channel is missing.', [
+      'Pass the channel ID (C0XXXXXXX): right-click the channel in Slack → Copy link — the ID is the last path segment.'
+    ]);
+  }
+
   return {
     org,
     orgs,
@@ -314,6 +320,8 @@ export function resolveConfig(opts: ResolveOptions): ResolvedConfig {
 
     slack: {
       webhookUrl: values['slack-webhook-url'] || undefined,
+      botToken: values['slack-bot-token'] || undefined,
+      channel: values['slack-channel'] || d.slack.channel,
       topHighlights: file.slack?.['top-highlights'] ?? d.slack.topHighlights,
       reportUrl: file.slack?.['report-url'] ?? d.slack.reportUrl
     },

@@ -15,6 +15,8 @@ export interface ReportFiles {
   markdownPath: string;
   htmlPath: string;
   dataPath: string;
+  /** Set after successful PDF generation. */
+  pdfPath?: string;
 }
 
 export function writeReportFiles(markdown: string, html: string, report: Report): ReportFiles {
@@ -62,7 +64,9 @@ export async function writeJobSummary(markdown: string): Promise<DeliveryResult>
 export async function uploadReportArtifact(name: string, files: ReportFiles): Promise<DeliveryResult> {
   try {
     const client = new DefaultArtifactClient();
-    const response = await client.uploadArtifact(name, [files.markdownPath, files.htmlPath, files.dataPath], files.dir);
+    const paths = [files.markdownPath, files.htmlPath, files.dataPath];
+    if (files.pdfPath) paths.push(files.pdfPath);
+    const response = await client.uploadArtifact(name, paths, files.dir);
     return { ok: true, detail: `ok (artifact id ${response.id ?? 'n/a'})` };
   } catch (error) {
     return { ok: false, detail: `Artifact upload failed: ${error instanceof Error ? error.message : String(error)}` };

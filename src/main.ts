@@ -5,6 +5,7 @@
  * LLM narrative (optional) → render → deliver. Delivery failures are isolated:
  * the action fails only when EVERY configured external delivery fails.
  */
+import { readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import { fetchConfigFile } from './config/file-config.js';
 import { resolveConfig } from './config/resolve.js';
@@ -22,6 +23,9 @@ import { buildSlackPayload } from './render/slack.js';
 import { deliverEmail } from './deliver/resend.js';
 import { deliverToSlack } from './deliver/slack.js';
 import { uploadReportArtifact, writeJobSummary, writeReportFiles } from './deliver/outputs.js';
+import { uploadPdfToSlack } from './deliver/slack-file.js';
+import { generatePdf } from './render/pdf.js';
+import { join } from 'node:path';
 import { ActionError } from './errors.js';
 import { biweeklyShouldRun, computeWindow } from './util/time.js';
 
@@ -46,7 +50,7 @@ export async function run(): Promise<void> {
   // --- Config: token + config file first, then full resolution ---
   const rawTokens = parseList(core.getInput('github-token'));
   const configFilePath = core.getInput('config-file') || '.github/weekly-report.yml';
-  for (const key of ['anthropic-api-key', 'openai-api-key', 'slack-webhook-url', 'resend-api-key']) {
+  for (const key of ['anthropic-api-key', 'openai-api-key', 'slack-webhook-url', 'slack-bot-token', 'resend-api-key']) {
     const value = core.getInput(key);
     if (value) core.setSecret(value);
   }
@@ -151,6 +155,17 @@ export async function run(): Promise<void> {
   core.setOutput('report-html-path', files.htmlPath);
   core.setOutput('metrics-json-path', files.dataPath);
 
+  // PDF via the runner's Chrome — optional everywhere, never fails the run.
+  const pdfCandidate = join(files.dir, 'report.pdf');
+  const pdfResult = await generatePdf(files.htmlPath, pdfCandidate);
+  if (pdfResult.ok) {
+    files.pdfPath = pdfCandidate;
+    core.info('PDF generated.');
+  } else {
+    core.warning(pdfResult.detail);
+  }
+  core.setOutput('report-pdf-path', files.pdfPath ?? '');
+
   if (config.output.jobSummary) {
     const summary = await writeJobSummary(markdown);
     deliveryStatus.summary = summary.ok ? 'ok' : 'failed';
@@ -186,11 +201,23 @@ export async function run(): Promise<void> {
           replyTo: config.email.replyTo || undefined,
           subject: fillSubject(config.email.subject, report),
           html,
-          text: markdown
+          text: markdown,
+          attachments: files.pdfPath
+            ? [{ filename: 'report.pdf', content: readFileSync(files.pdfPath).toString('base64') }]
+            : undefined
         }).then((r) => {
           externalResults.push({ channel: 'email', ...r });
         })
       );
+    }
+    if (config.slack.botToken && config.slack.channel && files.pdfPath) {
+      tasks.push(
+        uploadPdfToSlack(config.slack.botToken, config.slack.channel, files.pdfPath, report.title).then((r) => {
+          externalResults.push({ channel: 'slack-pdf', ...r });
+        })
+      );
+    } else if (config.slack.botToken && !files.pdfPath) {
+      core.warning('slack-bot-token is set but no PDF was generated on this runner — nothing to upload.');
     }
     await Promise.allSettled(tasks);
   }

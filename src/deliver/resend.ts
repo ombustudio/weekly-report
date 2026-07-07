@@ -14,6 +14,8 @@ export interface EmailMessage {
   subject: string;
   html: string;
   text: string;
+  /** Optional attachments (e.g. the report PDF), base64-encoded. */
+  attachments?: Array<{ filename: string; content: string }>;
 }
 
 export async function deliverEmail(
@@ -66,7 +68,8 @@ async function send(apiKey: string, message: EmailMessage, fetchImpl: typeof fet
       reply_to: message.replyTo || undefined,
       subject: message.subject,
       html: message.html,
-      text: message.text
+      text: message.text,
+      attachments: message.attachments
     })
   });
 }

@@ -83,6 +83,15 @@ export function secretsChecklist(state: ConfiguratorState): SecretItem[] {
     });
   }
 
+  if (state.slackEnabled && state.slackPdfEnabled) {
+    items.push({
+      name: state.slackBotSecret,
+      kind: 'secret',
+      what: 'Slack BOT token (xoxb-…) to upload the report PDF into the channel.',
+      how: 'Same Slack app → OAuth & Permissions → add the files:write scope → (re)install → copy the Bot User OAuth Token. Then /invite the bot to the channel.'
+    });
+  }
+
   if (state.emailEnabled) {
     items.push({
       name: state.resendSecret,

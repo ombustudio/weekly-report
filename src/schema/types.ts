@@ -76,6 +76,10 @@ export interface ResolvedConfig {
 
   slack: {
     webhookUrl?: string;
+    /** Bot token (files:write) — enables the PDF upload. */
+    botToken?: string;
+    /** Channel ID for the PDF upload. */
+    channel: string;
     topHighlights: number;
     /** override link target; empty = workflow run URL */
     reportUrl: string;
@@ -109,7 +113,7 @@ export interface ConfigDefaults {
   people: ResolvedConfig['people'];
   report: ResolvedConfig['report'];
   llm: Omit<ResolvedConfig['llm'], 'anthropicApiKey' | 'openaiApiKey'>;
-  slack: Omit<ResolvedConfig['slack'], 'webhookUrl'>;
+  slack: Omit<ResolvedConfig['slack'], 'webhookUrl' | 'botToken'>;
   email: Omit<ResolvedConfig['email'], 'resendApiKey'>;
   limits: ResolvedConfig['limits'];
   output: ResolvedConfig['output'];
@@ -144,7 +148,7 @@ export const CONFIG_DEFAULTS: ConfigDefaults = {
     tone: 'professional-warm',
     customInstructions: ''
   },
-  slack: { topHighlights: 3, reportUrl: '' },
+  slack: { channel: '', topHighlights: 3, reportUrl: '' },
   email: { to: [], from: '', replyTo: '', subject: '{org} engineering report — {period-label}' },
   limits: { maxRepos: 200, maxPrs: 1000 },
   // {org} resolves at runtime — keeps artifact names unique in multi-org matrix runs

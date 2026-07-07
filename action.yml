@@ -64,6 +64,12 @@ inputs:
     default: ""
   slack-webhook-url:
     description: Slack incoming webhook URL. Receives a condensed Block Kit summary linking to the full report.
+  slack-bot-token:
+    description: Slack BOT token (xoxb-…, files:write scope) — only needed to upload the report PDF to
+      Slack; the webhook alone cannot attach files.
+  slack-channel:
+    description: Channel ID (C0XXXXXXX) where the PDF is uploaded (required with slack-bot-token; invite
+      the bot to that channel).
   resend-api-key:
     description: Resend API key for email delivery of the full HTML report.
   email-to:
@@ -88,6 +94,8 @@ outputs:
     description: Absolute path of the rendered HTML report file.
   metrics-json-path:
     description: Absolute path of the raw metrics JSON (for downstream steps).
+  report-pdf-path:
+    description: Absolute path of the PDF (empty when no Chrome was available on the runner).
   delivery-status:
     description: JSON per channel, e.g. {"slack":"ok","email":"failed","summary":"ok","artifact":"ok"}
   llm-usage:

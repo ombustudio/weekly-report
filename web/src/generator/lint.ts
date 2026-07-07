@@ -48,6 +48,13 @@ export function lint(state: ConfiguratorState): Warning[] {
     }
   }
 
+  if (state.slackEnabled && state.slackPdfEnabled && !/^C[A-Z0-9]{6,}$/i.test(state.slackChannel.trim())) {
+    warnings.push({
+      level: 'error',
+      message: 'PDF upload needs the channel ID (starts with C, e.g. C0XXXXXXX) — right-click the channel in Slack → Copy link.'
+    });
+  }
+
   if (state.llm === 'none') {
     warnings.push({ level: 'info', message: 'Metrics-only mode: no LLM narrative will be generated.' });
   }

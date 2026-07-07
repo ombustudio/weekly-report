@@ -122,6 +122,11 @@ export function buildWithEntries(state: ConfiguratorState): Record<string, strin
       ? '${{ secrets[matrix.slack_secret] }}'
       : `\${{ secrets.${state.slackSecret} }}`;
   }
+  if (state.slackEnabled && state.slackPdfEnabled) {
+    entries['slack-bot-token'] = `\${{ secrets.${state.slackBotSecret} }}`;
+    if (state.slackChannel.trim()) entries['slack-channel'] = state.slackChannel.trim();
+  }
+
   if (state.emailEnabled) {
     entries['resend-api-key'] = `\${{ secrets.${state.resendSecret} }}`;
     if (state.emailTo.trim()) entries['email-to'] = state.emailTo.trim();

@@ -62,6 +62,9 @@ export interface ConfiguratorState {
 
   slackEnabled: boolean;
   slackSecret: string;
+  slackPdfEnabled: boolean;
+  slackBotSecret: string;
+  slackChannel: string;
   emailEnabled: boolean;
   resendSecret: string;
   emailTo: string;
@@ -107,6 +110,9 @@ export const DEFAULT_STATE: ConfiguratorState = {
 
   slackEnabled: true,
   slackSecret: inputDef('slack-webhook-url').suggestedSecretName ?? 'SLACK_WEBHOOK_URL',
+  slackPdfEnabled: false,
+  slackBotSecret: inputDef('slack-bot-token').suggestedSecretName ?? 'SLACK_BOT_TOKEN',
+  slackChannel: '',
   emailEnabled: false,
   resendSecret: inputDef('resend-api-key').suggestedSecretName ?? 'RESEND_API_KEY',
   emailTo: '',

@@ -10940,7 +10940,7 @@ var require_mock_interceptor = __commonJS({
 var require_mock_client = __commonJS({
   "node_modules/undici/lib/mock/mock-client.js"(exports2, module) {
     "use strict";
-    var { promisify } = __require("node:util");
+    var { promisify: promisify2 } = __require("node:util");
     var Client = require_client();
     var { buildMockDispatch } = require_mock_utils();
     var {
@@ -10980,7 +10980,7 @@ var require_mock_client = __commonJS({
         return new MockInterceptor(opts, this[kDispatches]);
       }
       async [kClose]() {
-        await promisify(this[kOriginalClose])();
+        await promisify2(this[kOriginalClose])();
         this[kConnected] = 0;
         this[kMockAgent][Symbols.kClients].delete(this[kOrigin]);
       }
@@ -10993,7 +10993,7 @@ var require_mock_client = __commonJS({
 var require_mock_pool = __commonJS({
   "node_modules/undici/lib/mock/mock-pool.js"(exports2, module) {
     "use strict";
-    var { promisify } = __require("node:util");
+    var { promisify: promisify2 } = __require("node:util");
     var Pool = require_pool();
     var { buildMockDispatch } = require_mock_utils();
     var {
@@ -11033,7 +11033,7 @@ var require_mock_pool = __commonJS({
         return new MockInterceptor(opts, this[kDispatches]);
       }
       async [kClose]() {
-        await promisify(this[kOriginalClose])();
+        await promisify2(this[kOriginalClose])();
         this[kConnected] = 0;
         this[kMockAgent][Symbols.kClients].delete(this[kOrigin]);
       }
@@ -37257,7 +37257,7 @@ var require_BufferList = __commonJS({
         this.head = this.tail = null;
         this.length = 0;
       };
-      BufferList.prototype.join = function join3(s) {
+      BufferList.prototype.join = function join4(s) {
         if (this.length === 0) return "";
         var p = this.head;
         var ret = "" + p.data;
@@ -61549,6 +61549,9 @@ var require_unzip = __commonJS({
   }
 });
 
+// src/main.ts
+import { readFileSync as readFileSync3 } from "node:fs";
+
 // node_modules/@actions/core/lib/command.js
 import * as os from "os";
 
@@ -62908,6 +62911,21 @@ var INPUT_DEFS = [
     required: false,
     secret: true,
     suggestedSecretName: "SLACK_WEBHOOK_URL",
+    group: "delivery"
+  },
+  {
+    key: "slack-bot-token",
+    description: "Slack BOT token (xoxb-\u2026, files:write scope) \u2014 only needed to upload the report PDF to Slack; the webhook alone cannot attach files.",
+    required: false,
+    secret: true,
+    suggestedSecretName: "SLACK_BOT_TOKEN",
+    group: "delivery"
+  },
+  {
+    key: "slack-channel",
+    description: "Channel ID (C0XXXXXXX) where the PDF is uploaded (required with slack-bot-token; invite the bot to that channel).",
+    required: false,
+    secret: false,
     group: "delivery"
   },
   {
@@ -67138,7 +67156,7 @@ var CONFIG_DEFAULTS = {
     tone: "professional-warm",
     customInstructions: ""
   },
-  slack: { topHighlights: 3, reportUrl: "" },
+  slack: { channel: "", topHighlights: 3, reportUrl: "" },
   email: { to: [], from: "", replyTo: "", subject: "{org} engineering report \u2014 {period-label}" },
   limits: { maxRepos: 200, maxPrs: 1e3 },
   // {org} resolves at runtime — keeps artifact names unique in multi-org matrix runs
@@ -67551,6 +67569,11 @@ function resolveConfig(opts) {
       }
     }
   }
+  if (values["slack-bot-token"] && !values["slack-channel"]) {
+    throw new ActionError("E_BAD_INPUT", "slack-bot-token is set but slack-channel is missing.", [
+      "Pass the channel ID (C0XXXXXXX): right-click the channel in Slack \u2192 Copy link \u2014 the ID is the last path segment."
+    ]);
+  }
   return {
     org,
     orgs,
@@ -67596,6 +67619,8 @@ function resolveConfig(opts) {
     },
     slack: {
       webhookUrl: values["slack-webhook-url"] || void 0,
+      botToken: values["slack-bot-token"] || void 0,
+      channel: values["slack-channel"] || d.slack.channel,
       topHighlights: file.slack?.["top-highlights"] ?? d.slack.topHighlights,
       reportUrl: file.slack?.["report-url"] ?? d.slack.reportUrl
     },
@@ -70874,7 +70899,8 @@ async function send(apiKey, message, fetchImpl) {
       reply_to: message.replyTo || void 0,
       subject: message.subject,
       html: message.html,
-      text: message.text
+      text: message.text,
+      attachments: message.attachments
     })
   });
 }
@@ -113324,14 +113350,122 @@ async function writeJobSummary(markdown) {
 async function uploadReportArtifact(name, files) {
   try {
     const client2 = new DefaultArtifactClient();
-    const response = await client2.uploadArtifact(name, [files.markdownPath, files.htmlPath, files.dataPath], files.dir);
+    const paths = [files.markdownPath, files.htmlPath, files.dataPath];
+    if (files.pdfPath) paths.push(files.pdfPath);
+    const response = await client2.uploadArtifact(name, paths, files.dir);
     return { ok: true, detail: `ok (artifact id ${response.id ?? "n/a"})` };
   } catch (error2) {
     return { ok: false, detail: `Artifact upload failed: ${error2 instanceof Error ? error2.message : String(error2)}` };
   }
 }
 
+// src/deliver/slack-file.ts
+import { readFileSync as readFileSync2 } from "node:fs";
+import { basename as basename3 } from "node:path";
+var SLACK_API = "https://slack.com/api";
+async function uploadPdfToSlack(botToken, channel, pdfPath, title, fetchImpl = fetch) {
+  try {
+    const bytes = readFileSync2(pdfPath);
+    const filename = basename3(pdfPath);
+    const ticketResponse = await fetchImpl(`${SLACK_API}/files.getUploadURLExternal`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${botToken}`,
+        "content-type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams({ filename, length: String(bytes.byteLength) })
+    });
+    const ticket = await ticketResponse.json();
+    if (!ticket.ok || !ticket.upload_url || !ticket.file_id) {
+      return { ok: false, detail: `Slack getUploadURLExternal: ${ticket.error ?? "unknown error"}` };
+    }
+    const uploadResponse = await fetchImpl(ticket.upload_url, {
+      method: "POST",
+      headers: { "content-type": "application/octet-stream" },
+      body: bytes
+    });
+    if (!uploadResponse.ok) {
+      return { ok: false, detail: `Slack file upload HTTP ${uploadResponse.status}` };
+    }
+    const completeResponse = await fetchImpl(`${SLACK_API}/files.completeUploadExternal`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${botToken}`,
+        "content-type": "application/json; charset=utf-8"
+      },
+      body: JSON.stringify({
+        files: [{ id: ticket.file_id, title }],
+        channel_id: channel
+      })
+    });
+    const complete = await completeResponse.json();
+    if (!complete.ok) {
+      const hints = {
+        not_in_channel: " \u2014 invite the bot to the channel (/invite @YourApp)",
+        channel_not_found: " \u2014 use the channel ID (right-click channel \u2192 Copy link \u2192 C0XXXXXXX), not its name",
+        invalid_auth: " \u2014 check slack-bot-token",
+        missing_scope: " \u2014 the bot token needs the files:write scope"
+      };
+      return {
+        ok: false,
+        detail: `Slack completeUploadExternal: ${complete.error}${hints[complete.error ?? ""] ?? ""}`
+      };
+    }
+    return { ok: true, detail: "ok (PDF uploaded)" };
+  } catch (error2) {
+    return { ok: false, detail: `Slack PDF upload error: ${error2 instanceof Error ? error2.message : String(error2)}` };
+  }
+}
+
+// src/render/pdf.ts
+import { execFile } from "node:child_process";
+import { existsSync as existsSync5 } from "node:fs";
+import { promisify } from "node:util";
+var execFileAsync = promisify(execFile);
+var CHROME_CANDIDATES = [
+  process.env.CHROME_PATH,
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/usr/bin/chromium-browser",
+  "/usr/bin/chromium",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+];
+function findChrome() {
+  for (const candidate of CHROME_CANDIDATES) {
+    if (candidate && existsSync5(candidate)) return candidate;
+  }
+  return null;
+}
+async function generatePdf(htmlPath, pdfPath) {
+  const chrome = findChrome();
+  if (!chrome) {
+    return {
+      ok: false,
+      detail: "No Chrome/Chromium found on this runner \u2014 skipping the PDF (set CHROME_PATH to enable it)."
+    };
+  }
+  try {
+    await execFileAsync(
+      chrome,
+      [
+        "--headless",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--no-pdf-header-footer",
+        `--print-to-pdf=${pdfPath}`,
+        `file://${htmlPath}`
+      ],
+      { timeout: 6e4 }
+    );
+    if (!existsSync5(pdfPath)) return { ok: false, detail: "Chrome exited without producing the PDF." };
+    return { ok: true, detail: "ok" };
+  } catch (error2) {
+    return { ok: false, detail: `PDF generation failed: ${error2 instanceof Error ? error2.message : String(error2)}` };
+  }
+}
+
 // src/main.ts
+import { join as join3 } from "node:path";
 function runUrl() {
   const server = process.env.GITHUB_SERVER_URL ?? "https://github.com";
   const repo = process.env.GITHUB_REPOSITORY ?? "";
@@ -113345,7 +113479,7 @@ async function run() {
   const nowMs = Date.now();
   const rawTokens = parseList(getInput("github-token"));
   const configFilePath = getInput("config-file") || ".github/weekly-report.yml";
-  for (const key of ["anthropic-api-key", "openai-api-key", "slack-webhook-url", "resend-api-key"]) {
+  for (const key of ["anthropic-api-key", "openai-api-key", "slack-webhook-url", "slack-bot-token", "resend-api-key"]) {
     const value = getInput(key);
     if (value) setSecret(value);
   }
@@ -113420,6 +113554,15 @@ async function run() {
   setOutput("report-markdown-path", files.markdownPath);
   setOutput("report-html-path", files.htmlPath);
   setOutput("metrics-json-path", files.dataPath);
+  const pdfCandidate = join3(files.dir, "report.pdf");
+  const pdfResult = await generatePdf(files.htmlPath, pdfCandidate);
+  if (pdfResult.ok) {
+    files.pdfPath = pdfCandidate;
+    info("PDF generated.");
+  } else {
+    warning(pdfResult.detail);
+  }
+  setOutput("report-pdf-path", files.pdfPath ?? "");
   if (config.output.jobSummary) {
     const summary2 = await writeJobSummary(markdown);
     deliveryStatus.summary = summary2.ok ? "ok" : "failed";
@@ -113451,11 +113594,21 @@ async function run() {
           replyTo: config.email.replyTo || void 0,
           subject: fillSubject(config.email.subject, report),
           html,
-          text: markdown
+          text: markdown,
+          attachments: files.pdfPath ? [{ filename: "report.pdf", content: readFileSync3(files.pdfPath).toString("base64") }] : void 0
         }).then((r) => {
           externalResults.push({ channel: "email", ...r });
         })
       );
+    }
+    if (config.slack.botToken && config.slack.channel && files.pdfPath) {
+      tasks.push(
+        uploadPdfToSlack(config.slack.botToken, config.slack.channel, files.pdfPath, report.title).then((r) => {
+          externalResults.push({ channel: "slack-pdf", ...r });
+        })
+      );
+    } else if (config.slack.botToken && !files.pdfPath) {
+      warning("slack-bot-token is set but no PDF was generated on this runner \u2014 nothing to upload.");
     }
     await Promise.allSettled(tasks);
   }

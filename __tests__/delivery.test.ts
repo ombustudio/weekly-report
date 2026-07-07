@@ -7,6 +7,10 @@ import { renderEmailHtml, mdInlineToHtml } from '../src/render/email.js';
 import { buildSlackPayload, mdToMrkdwn } from '../src/render/slack.js';
 import { deliverToSlack } from '../src/deliver/slack.js';
 import { deliverEmail } from '../src/deliver/resend.js';
+import { uploadPdfToSlack } from '../src/deliver/slack-file.js';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parseConfigFile } from '../src/config/file-config.js';
 import { NOW, busyWeek, testConfig } from './fixtures.js';
 
@@ -114,6 +118,58 @@ describe('email renderer + delivery', () => {
     );
     expect(result.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(3); // 50 + 50 + 20
+  });
+});
+
+describe('slack PDF upload', () => {
+  const pdfPath = join(tmpdir(), 'ombupulse-test.pdf');
+  writeFileSync(pdfPath, '%PDF-1.4 fake');
+
+  function slackOk(body: unknown) {
+    return new Response(JSON.stringify(body), { status: 200 });
+  }
+
+  it('runs the 3-step external upload flow', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(slackOk({ ok: true, upload_url: 'https://up.slack.test/x', file_id: 'F123' }))
+      .mockResolvedValueOnce(new Response('OK', { status: 200 }))
+      .mockResolvedValueOnce(slackOk({ ok: true }));
+    const result = await uploadPdfToSlack('xoxb-t', 'C0123', pdfPath, 'Reporte', fetchMock as unknown as typeof fetch);
+    expect(result.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const complete = JSON.parse((fetchMock.mock.calls[2]![1] as RequestInit).body as string);
+    expect(complete.channel_id).toBe('C0123');
+    expect(complete.files[0].id).toBe('F123');
+  });
+
+  it('surfaces actionable hints on Slack errors', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(slackOk({ ok: true, upload_url: 'https://up.slack.test/x', file_id: 'F1' }))
+      .mockResolvedValueOnce(new Response('OK', { status: 200 }))
+      .mockResolvedValueOnce(slackOk({ ok: false, error: 'not_in_channel' }));
+    const result = await uploadPdfToSlack('xoxb-t', 'C0123', pdfPath, 'x', fetchMock as unknown as typeof fetch);
+    expect(result.ok).toBe(false);
+    expect(result.detail).toMatch(/invite the bot/);
+  });
+
+  it('email attaches the PDF as base64', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    await deliverEmail(
+      're_key',
+      {
+        from: 'r@a.co',
+        to: ['x@a.co'],
+        subject: 's',
+        html: '<p>x</p>',
+        text: 'x',
+        attachments: [{ filename: 'report.pdf', content: 'JVBERi0=' }]
+      },
+      fetchMock as unknown as typeof fetch
+    );
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.attachments[0].filename).toBe('report.pdf');
   });
 });
 
