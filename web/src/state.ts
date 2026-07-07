@@ -55,6 +55,7 @@ export interface ConfiguratorState {
   excludeBots: boolean;
   peopleExclude: string;
   tone: 'professional-warm' | 'neutral' | 'playful';
+  audience: 'non-technical' | 'mixed' | 'technical';
 
   llm: LlmChoice;
   anthropicSecret: string;
@@ -103,6 +104,7 @@ export const DEFAULT_STATE: ConfiguratorState = {
   excludeBots: true,
   peopleExclude: '',
   tone: 'professional-warm',
+  audience: 'mixed',
 
   llm: 'anthropic',
   anthropicSecret: inputDef('anthropic-api-key').suggestedSecretName ?? 'ANTHROPIC_API_KEY',
@@ -133,6 +135,7 @@ const ENUM_FIELDS: Partial<Record<keyof ConfiguratorState, readonly string[]>> =
   language: ['en', 'es'],
   biweeklyAnchor: ['even', 'odd'],
   tone: ['professional-warm', 'neutral', 'playful'],
+  audience: ['non-technical', 'mixed', 'technical'],
   multiOrgMode: ['consolidated', 'matrix']
 };
 

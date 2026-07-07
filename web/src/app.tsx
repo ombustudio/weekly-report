@@ -440,6 +440,16 @@ export function App() {
                   <option value="playful">Playful</option>
                 </select>
               </Field>
+              <Field label="Summary audience" hint="Non-technical: zero jargon for clients/management.">
+                <select
+                  value={v.audience}
+                  onChange={(e) => set({ audience: (e.target as HTMLSelectElement).value as ConfiguratorState['audience'] })}
+                >
+                  <option value="mixed">Mixed (default)</option>
+                  <option value="non-technical">Non-technical</option>
+                  <option value="technical">Technical</option>
+                </select>
+              </Field>
               <Field label="Exclude people (privacy opt-out)" hint="Comma-separated logins.">
                 <TextInput mono value={v.peopleExclude} onInput={(x) => set({ peopleExclude: x })} placeholder="octocat" />
               </Field>

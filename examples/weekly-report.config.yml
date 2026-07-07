@@ -48,6 +48,7 @@ llm:
   max-output-tokens: 2000
   titles-per-repo: 10
   tone: professional-warm # professional-warm | neutral | playful
+  audience: mixed # non-technical | mixed | technical — how much jargon the summary may use
   custom-instructions: ''
 
 slack:

@@ -17,6 +17,7 @@ export const LANGUAGES = ['en', 'es'] as const;
 export const PERIODS = ['daily', 'weekly', 'biweekly', 'monthly', 'custom'] as const;
 export const LLM_PROVIDERS = ['auto', 'anthropic', 'openai', 'none'] as const;
 export const TONES = ['professional-warm', 'neutral', 'playful'] as const;
+export const AUDIENCES = ['non-technical', 'mixed', 'technical'] as const;
 export const REPORT_LEVELS = ['org', 'repo', 'person'] as const;
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -100,6 +101,7 @@ export const configFileSchema = z
         'max-output-tokens': z.number().int().positive().optional(),
         'titles-per-repo': z.number().int().nonnegative().optional(),
         tone: z.enum(TONES).optional(),
+        audience: z.enum(AUDIENCES).optional(),
         'custom-instructions': z.string().max(2000).optional()
       })
       .strict()

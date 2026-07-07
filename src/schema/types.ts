@@ -4,12 +4,13 @@
  *   action inputs  >  .github/weekly-report.yml  >  built-in defaults.
  */
 import type { HighlightId, HighlightParams } from './highlights.js';
-import type { LANGUAGES, LLM_PROVIDERS, PERIODS, TONES } from './config-file.js';
+import type { AUDIENCES, LANGUAGES, LLM_PROVIDERS, PERIODS, TONES } from './config-file.js';
 
 export type Language = (typeof LANGUAGES)[number];
 export type Period = (typeof PERIODS)[number];
 export type LlmProvider = (typeof LLM_PROVIDERS)[number];
 export type Tone = (typeof TONES)[number];
+export type Audience = (typeof AUDIENCES)[number];
 
 export type ResolvedHighlights = {
   [K in HighlightId]: { enabled: boolean; params: HighlightParams[K] };
@@ -71,6 +72,8 @@ export interface ResolvedConfig {
     maxOutputTokens: number;
     titlesPerRepo: number;
     tone: Tone;
+    /** Who reads the executive summary — drives how much jargon is allowed. */
+    audience: Audience;
     customInstructions: string;
   };
 
@@ -146,6 +149,7 @@ export const CONFIG_DEFAULTS: ConfigDefaults = {
     maxOutputTokens: 2000,
     titlesPerRepo: 10,
     tone: 'professional-warm',
+    audience: 'mixed',
     customInstructions: ''
   },
   slack: { channel: '', topHighlights: 3, reportUrl: '' },

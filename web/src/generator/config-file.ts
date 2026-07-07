@@ -39,9 +39,10 @@ export function buildConfigObject(state: ConfiguratorState): Record<string, unkn
   if (excluded.length > 0) people.exclude = excluded;
   if (Object.keys(people).length > 0) config.people = people;
 
-  if (state.tone !== 'professional-warm') {
-    config.llm = { tone: state.tone };
-  }
+  const llm: Record<string, unknown> = {};
+  if (state.tone !== 'professional-warm') llm.tone = state.tone;
+  if (state.audience !== 'mixed') llm.audience = state.audience;
+  if (Object.keys(llm).length > 0) config.llm = llm;
 
   return config;
 }

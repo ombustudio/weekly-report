@@ -315,6 +315,7 @@ export function resolveConfig(opts: ResolveOptions): ResolvedConfig {
       maxOutputTokens: file.llm?.['max-output-tokens'] ?? d.llm.maxOutputTokens,
       titlesPerRepo: file.llm?.['titles-per-repo'] ?? d.llm.titlesPerRepo,
       tone: file.llm?.tone ?? d.llm.tone,
+      audience: file.llm?.audience ?? d.llm.audience,
       customInstructions: file.llm?.['custom-instructions'] ?? d.llm.customInstructions
     },
 
