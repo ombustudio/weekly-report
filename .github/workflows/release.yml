@@ -23,6 +23,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          # GITHUB_TOKEN cannot push tags whose tree contains workflow files
+          # (needs the `workflows` permission it can never get). Provide a
+          # fine-grained PAT secret RELEASE_TAG_TOKEN (this repo; Contents +
+          # Workflows read/write) to let the floating-tag step push; otherwise
+          # move the tag locally: git tag -f v1 <tag> && git push -f origin v1
+          token: ${{ secrets.RELEASE_TAG_TOKEN || github.token }}
 
       - uses: actions/setup-node@v4
         with:
@@ -53,4 +59,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -f "$MAJOR" "$GITHUB_SHA"
-          git push origin "$MAJOR" --force
+          if ! git push origin "$MAJOR" --force; then
+            echo "::warning::Could not push the floating $MAJOR tag (GITHUB_TOKEN lacks the workflows permission). Add a RELEASE_TAG_TOKEN secret or run locally: git tag -f $MAJOR $GITHUB_REF_NAME && git push -f origin $MAJOR"
+            exit 0
+          fi
