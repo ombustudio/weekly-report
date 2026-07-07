@@ -1,0 +1,27 @@
+name: Weekly report
+on:
+  schedule:
+    - cron: 15 12 * * 5 # GitHub cron runs in UTC and is best-effort (5-30 min delays are normal)
+  workflow_dispatch:
+    inputs:
+      start-date:
+        description: Custom window start (YYYY-MM-DD, optional)
+        required: false
+      end-date:
+        description: Custom window end (YYYY-MM-DD, optional)
+        required: false
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ombustudio/weekly-report@v1
+        with:
+          github-token: ${{ secrets.ORG_REPORT_GITHUB_TOKEN }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          llm-provider: anthropic
+          language: es
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          start-date: ${{ inputs.start-date }}
+          end-date: ${{ inputs.end-date }}
