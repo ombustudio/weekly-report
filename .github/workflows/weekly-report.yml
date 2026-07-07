@@ -14,28 +14,16 @@ permissions:
   contents: read
 jobs:
   report:
-    name: report ${{ matrix.org }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - org: ombustudio
-            token_secret: ORG_REPORT_GITHUB_TOKEN
-            slack_secret: SLACK_WEBHOOK_URL
-            language: es
-          - org: clubhaus-inc
-            token_secret: ORG2_REPORT_TOKEN
-            slack_secret: SLACK_WEBHOOK_URL
-            language: es
     runs-on: ubuntu-latest
     steps:
       - uses: ombustudio/weekly-report@v1
         with:
-          github-token: ${{ secrets[matrix.token_secret] }}
-          org: ${{ matrix.org }}
+          github-token: ${{ secrets.ORG_REPORT_GITHUB_TOKEN }},${{ secrets.ORG2_REPORT_TOKEN }}
+          org: ombustudio, clubhaus-inc
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           llm-provider: anthropic
-          language: ${{ matrix.language }}
-          slack-webhook-url: ${{ secrets[matrix.slack_secret] }}
+          language: es
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           start-date: ${{ inputs.start-date }}
           end-date: ${{ inputs.end-date }}
+
