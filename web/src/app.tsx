@@ -424,6 +424,22 @@ export function App() {
                 />
               </Field>
             )}
+            <Field
+              label="Branch model"
+              hint="Merges into 'production' bases count as deliveries; commits are measured on the first existing commit-priority branch (fallback: default branch). Comma-separated, globs allowed."
+            >
+              <div class="row">
+                <Field label="Production branches">
+                  <TextInput mono value={v.branchesProduction} onInput={(x) => set({ branchesProduction: x })} />
+                </Field>
+                <Field label="Staging branches">
+                  <TextInput mono value={v.branchesStaging} onInput={(x) => set({ branchesStaging: x })} />
+                </Field>
+                <Field label="Commit-count priority">
+                  <TextInput mono value={v.branchesCommitPriority} onInput={(x) => set({ branchesCommitPriority: x })} />
+                </Field>
+              </div>
+            </Field>
             <div class="row">
               <Field label="Include repos (globs)" hint="Empty = all repos.">
                 <TextInput mono value={v.reposInclude} onInput={(x) => set({ reposInclude: x })} placeholder="api-*, web" />

@@ -204,6 +204,8 @@ describe('generateConfigFile', () => {
     expect(needsConfigFile(makeState())).toBe(false);
     expect(needsConfigFile(makeState({ tone: 'neutral' }))).toBe(true);
     expect(needsConfigFile(makeState({ includeForks: true }))).toBe(true);
+    expect(needsConfigFile(makeState({ branchesProduction: 'release' }))).toBe(true);
+    expect(needsConfigFile(makeState())).toBe(false); // defaults emit nothing
     expect(needsConfigFile(makeState({ staleThresholdDays: 3 }))).toBe(true);
     expect(needsConfigFile(makeState({ peopleExclude: 'octocat' }))).toBe(true);
     expect(needsConfigFile(makeState({ cadence: 'biweekly', biweeklyAnchor: 'odd' }))).toBe(true);
@@ -216,6 +218,7 @@ describe('generateConfigFile', () => {
       peopleExclude: 'octocat, hubot',
       excludeBots: false,
       includeForks: true,
+      branchesProduction: 'release, main',
       cadence: 'biweekly',
       biweeklyAnchor: 'odd'
     });

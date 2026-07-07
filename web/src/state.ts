@@ -55,6 +55,9 @@ export interface ConfiguratorState {
   excludeBots: boolean;
   peopleExclude: string;
   tone: 'professional-warm' | 'neutral' | 'playful';
+  branchesProduction: string;
+  branchesStaging: string;
+  branchesCommitPriority: string;
   audience: 'non-technical' | 'mixed' | 'technical';
 
   llm: LlmChoice;
@@ -105,6 +108,9 @@ export const DEFAULT_STATE: ConfiguratorState = {
   peopleExclude: '',
   tone: 'professional-warm',
   audience: 'mixed',
+  branchesProduction: 'main, master',
+  branchesStaging: 'develop, development, staging',
+  branchesCommitPriority: 'develop, development, staging',
 
   llm: 'anthropic',
   anthropicSecret: inputDef('anthropic-api-key').suggestedSecretName ?? 'ANTHROPIC_API_KEY',

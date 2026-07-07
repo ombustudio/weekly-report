@@ -9,6 +9,16 @@ import { stringify } from 'yaml';
 import { HIGHLIGHT_DEFAULTS } from '@schema/index';
 import type { ConfiguratorState } from '../state.js';
 
+const BRANCH_DEFAULTS = {
+  production: 'main, master',
+  staging: 'develop, development, staging',
+  commitPriority: 'develop, development, staging'
+};
+
+function csv(value: string): string[] {
+  return value.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 export function buildConfigObject(state: ConfiguratorState): Record<string, unknown> {
   const config: Record<string, unknown> = {};
 
@@ -29,6 +39,14 @@ export function buildConfigObject(state: ConfiguratorState): Record<string, unkn
   if (state.includeForks) {
     config.repos = { 'skip-forks': false };
   }
+
+  const branches: Record<string, unknown> = {};
+  if (state.branchesProduction.trim() !== BRANCH_DEFAULTS.production) branches.production = csv(state.branchesProduction);
+  if (state.branchesStaging.trim() !== BRANCH_DEFAULTS.staging) branches.staging = csv(state.branchesStaging);
+  if (state.branchesCommitPriority.trim() !== BRANCH_DEFAULTS.commitPriority) {
+    branches['commit-priority'] = csv(state.branchesCommitPriority);
+  }
+  if (Object.keys(branches).length > 0) config.branches = branches;
 
   const people: Record<string, unknown> = {};
   if (!state.excludeBots) people['exclude-bots'] = false;
