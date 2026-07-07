@@ -444,6 +444,11 @@ export function App() {
                 <TextInput mono value={v.peopleExclude} onInput={(x) => set({ peopleExclude: x })} placeholder="octocat" />
               </Field>
             </div>
+            <Toggle
+              checked={v.includeForks}
+              onChange={(x) => set({ includeForks: x })}
+              label="Include forked repos (excluded by default)"
+            />
             <Toggle checked={v.excludeBots} onChange={(x) => set({ excludeBots: x })} label="Exclude bots from contributor stats" />
             <Toggle
               checked={v.listMergedPrs}

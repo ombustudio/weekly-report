@@ -49,6 +49,7 @@ export interface ConfiguratorState {
   highlights: Record<HighlightId, boolean>;
   staleThresholdDays: number;
   listMergedPrs: boolean;
+  includeForks: boolean;
   reposInclude: string;
   reposExclude: string;
   excludeBots: boolean;
@@ -93,6 +94,7 @@ export const DEFAULT_STATE: ConfiguratorState = {
   highlights: Object.fromEntries(HIGHLIGHT_IDS.map((id) => [id, true])) as Record<HighlightId, boolean>,
   staleThresholdDays: 7,
   listMergedPrs: true,
+  includeForks: false,
   reposInclude: '',
   reposExclude: '',
   excludeBots: true,

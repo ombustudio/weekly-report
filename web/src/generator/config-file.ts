@@ -26,6 +26,10 @@ export function buildConfigObject(state: ConfiguratorState): Record<string, unkn
     config.report = { 'list-merged-prs': false };
   }
 
+  if (state.includeForks) {
+    config.repos = { 'skip-forks': false };
+  }
+
   const people: Record<string, unknown> = {};
   if (!state.excludeBots) people['exclude-bots'] = false;
   const excluded = state.peopleExclude

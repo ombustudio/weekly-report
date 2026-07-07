@@ -203,6 +203,7 @@ describe('generateConfigFile', () => {
   it('is only needed when non-input settings differ from defaults', () => {
     expect(needsConfigFile(makeState())).toBe(false);
     expect(needsConfigFile(makeState({ tone: 'neutral' }))).toBe(true);
+    expect(needsConfigFile(makeState({ includeForks: true }))).toBe(true);
     expect(needsConfigFile(makeState({ staleThresholdDays: 3 }))).toBe(true);
     expect(needsConfigFile(makeState({ peopleExclude: 'octocat' }))).toBe(true);
     expect(needsConfigFile(makeState({ cadence: 'biweekly', biweeklyAnchor: 'odd' }))).toBe(true);
@@ -214,6 +215,7 @@ describe('generateConfigFile', () => {
       staleThresholdDays: 3,
       peopleExclude: 'octocat, hubot',
       excludeBots: false,
+      includeForks: true,
       cadence: 'biweekly',
       biweeklyAnchor: 'odd'
     });
