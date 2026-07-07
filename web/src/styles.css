@@ -319,6 +319,20 @@ input[type='number'] {
   border-color: var(--accent);
 }
 
+.org-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.org-row input {
+  flex: 1;
+  min-width: 90px;
+}
+.org-row select {
+  width: 64px;
+}
+
 .run-row {
   display: flex;
   align-items: center;

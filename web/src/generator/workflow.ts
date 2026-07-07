@@ -26,14 +26,44 @@ export function periodFor(state: ConfiguratorState): string {
   return state.cadence;
 }
 
+export function isMultiOrg(state: ConfiguratorState): boolean {
+  return state.extraOrgs.length > 0;
+}
+
+/** Matrix rows: primary org first, then each extra org. */
+export function matrixInclude(state: ConfiguratorState): Array<Record<string, string>> {
+  const entries = [
+    { org: state.org.trim(), tokenSecret: state.githubTokenSecret, slackSecret: state.slackSecret, language: state.language },
+    ...state.extraOrgs.map((e) => ({
+      org: e.org.trim(),
+      tokenSecret: e.tokenSecret,
+      slackSecret: e.slackSecret,
+      language: e.language
+    }))
+  ];
+  return entries.map((e) => {
+    const row: Record<string, string> = { org: e.org };
+    if (state.auth === 'pat') row.token_secret = e.tokenSecret;
+    if (state.slackEnabled) row.slack_secret = e.slackSecret;
+    row.language = e.language;
+    return row;
+  });
+}
+
 /** `with:` entries, only for values that differ from action defaults. */
 export function buildWithEntries(state: ConfiguratorState): Record<string, string> {
   const entries: Record<string, string> = {};
+  const multi = isMultiOrg(state);
 
   entries['github-token'] =
-    state.auth === 'pat' ? `\${{ secrets.${state.githubTokenSecret} }}` : '${{ steps.app-token.outputs.token }}';
+    state.auth === 'pat'
+      ? multi
+        ? '${{ secrets[matrix.token_secret] }}'
+        : `\${{ secrets.${state.githubTokenSecret} }}`
+      : '${{ steps.app-token.outputs.token }}';
 
-  if (state.org.trim()) entries['org'] = state.org.trim();
+  if (multi) entries['org'] = '${{ matrix.org }}';
+  else if (state.org.trim()) entries['org'] = state.org.trim();
 
   // Explicit provider pinning: a missing repo secret then fails loudly with
   // E_LLM_CONFIG instead of silently degrading to a metrics-only report.
@@ -47,7 +77,8 @@ export function buildWithEntries(state: ConfiguratorState): Record<string, strin
   }
   if (state.llm === 'none') entries['llm-provider'] = 'none';
 
-  if (state.language !== 'en') entries['language'] = state.language;
+  if (multi) entries['language'] = '${{ matrix.language }}';
+  else if (state.language !== 'en') entries['language'] = state.language;
 
   const levels = ['org', 'repo', 'person'].filter((l) => state.levels[l as keyof typeof state.levels]);
   // Zero levels is a lint error; emitting '' would silently mean "all levels".
@@ -63,7 +94,11 @@ export function buildWithEntries(state: ConfiguratorState): Record<string, strin
   if (state.reposInclude.trim()) entries['repos-include'] = state.reposInclude.trim();
   if (state.reposExclude.trim()) entries['repos-exclude'] = state.reposExclude.trim();
 
-  if (state.slackEnabled) entries['slack-webhook-url'] = `\${{ secrets.${state.slackSecret} }}`;
+  if (state.slackEnabled) {
+    entries['slack-webhook-url'] = multi
+      ? '${{ secrets[matrix.slack_secret] }}'
+      : `\${{ secrets.${state.slackSecret} }}`;
+  }
   if (state.emailEnabled) {
     entries['resend-api-key'] = `\${{ secrets.${state.resendSecret} }}`;
     if (state.emailTo.trim()) entries['email-to'] = state.emailTo.trim();
@@ -79,6 +114,7 @@ export function buildWithEntries(state: ConfiguratorState): Record<string, strin
 
 export function generateWorkflow(state: ConfiguratorState): string {
   const uses = `${state.actionRef || 'OWNER/weekly-report'}@${state.actionVersion || 'v1'}`;
+  const multi = isMultiOrg(state);
 
   const steps: Array<Record<string, unknown>> = [];
   if (state.auth === 'app') {
@@ -89,11 +125,21 @@ export function generateWorkflow(state: ConfiguratorState): string {
       with: {
         'app-id': `\${{ vars.${state.appIdVar} }}`,
         'private-key': `\${{ secrets.${state.appKeySecret} }}`,
-        owner: '${{ github.repository_owner }}'
+        // Matrix mode: the same App must be installed on every org listed.
+        owner: multi ? '${{ matrix.org }}' : '${{ github.repository_owner }}'
       }
     });
   }
   steps.push({ uses, with: buildWithEntries(state) });
+
+  const reportJob: Record<string, unknown> = {};
+  if (multi) {
+    reportJob.name = 'report ${{ matrix.org }}';
+    // One org failing must never cancel the others.
+    reportJob.strategy = { 'fail-fast': false, matrix: { include: matrixInclude(state) } };
+  }
+  reportJob['runs-on'] = 'ubuntu-latest';
+  reportJob.steps = steps;
 
   const doc = new Document({
     name: 'Weekly report',
@@ -107,12 +153,7 @@ export function generateWorkflow(state: ConfiguratorState): string {
       }
     },
     permissions: { contents: 'read' },
-    jobs: {
-      report: {
-        'runs-on': 'ubuntu-latest',
-        steps
-      }
-    }
+    jobs: { report: reportJob }
   });
 
   // Guidance comments

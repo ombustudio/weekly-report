@@ -8,6 +8,14 @@ import { HIGHLIGHT_IDS, INPUT_DEFS, inputDef } from '@schema/index';
 import type { HighlightId } from '@schema/index';
 
 export type AuthMode = 'pat' | 'app';
+
+/** Extra organization for matrix mode — each runs as its own job. */
+export interface OrgEntry {
+  org: string;
+  tokenSecret: string;
+  slackSecret: string;
+  language: 'en' | 'es';
+}
 export type LlmChoice = 'anthropic' | 'openai' | 'none';
 export type Cadence = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
@@ -18,6 +26,9 @@ export interface ConfiguratorState {
   /** target repo (owner/repo) that will host the workflow — for quick-create links */
   targetRepo: string;
   org: string;
+
+  /** Non-empty ⇒ the generator emits a multi-org matrix workflow. */
+  extraOrgs: OrgEntry[];
 
   auth: AuthMode;
   githubTokenSecret: string;
@@ -59,6 +70,8 @@ export const DEFAULT_STATE: ConfiguratorState = {
   actionVersion: 'v1',
   targetRepo: '',
   org: '',
+
+  extraOrgs: [],
 
   auth: 'pat',
   githubTokenSecret: inputDef('github-token').suggestedSecretName ?? 'ORG_REPORT_GITHUB_TOKEN',
@@ -120,6 +133,21 @@ export function sanitizeSaved(saved: unknown): Partial<ConfiguratorState> {
     if (val === undefined || typeof val !== typeof defVal) continue;
     const allowed = ENUM_FIELDS[key as keyof ConfiguratorState];
     if (allowed && !allowed.includes(val as string)) continue;
+    if (Array.isArray(defVal)) {
+      if (!Array.isArray(val)) continue;
+      if (key === 'extraOrgs') {
+        out[key] = (val as unknown[])
+          .filter((x): x is Record<string, unknown> => typeof x === 'object' && x !== null)
+          .map((e) => ({
+            org: typeof e.org === 'string' ? e.org : '',
+            tokenSecret: typeof e.tokenSecret === 'string' ? e.tokenSecret : '',
+            slackSecret: typeof e.slackSecret === 'string' ? e.slackSecret : '',
+            language: e.language === 'es' ? ('es' as const) : ('en' as const)
+          }))
+          .slice(0, 20);
+      }
+      continue;
+    }
     if (typeof defVal === 'object' && defVal !== null) {
       // Nested objects (levels, highlights): keep only known keys, matching types.
       const merged: Record<string, unknown> = { ...(defVal as Record<string, unknown>) };

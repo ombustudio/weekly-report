@@ -95,6 +95,72 @@ describe('generateWorkflow', () => {
   });
 });
 
+describe('multi-org matrix', () => {
+  const multi = makeState({
+    org: 'ombustudio',
+    extraOrgs: [
+      { org: 'cliente-x', tokenSecret: 'CLIENTEX_TOKEN', slackSecret: 'CLIENTEX_SLACK', language: 'en' }
+    ]
+  });
+
+  it('emits a fail-fast:false matrix with one row per org (primary first)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = parse(generateWorkflow(multi)) as any;
+    const job = parsed['jobs']['report'];
+    expect(job['strategy']['fail-fast']).toBe(false);
+    expect(job['name']).toBe('report ${{ matrix.org }}');
+    const include = job['strategy']['matrix']['include'];
+    expect(include).toHaveLength(2);
+    expect(include[0]).toMatchObject({ org: 'ombustudio', token_secret: 'ORG_REPORT_GITHUB_TOKEN', language: 'en' });
+    expect(include[1]).toMatchObject({ org: 'cliente-x', token_secret: 'CLIENTEX_TOKEN', language: 'en' });
+    const withEntries = job['steps'].at(-1)['with'];
+    expect(withEntries['org']).toBe('${{ matrix.org }}');
+    expect(withEntries['github-token']).toBe('${{ secrets[matrix.token_secret] }}');
+    expect(withEntries['slack-webhook-url']).toBe('${{ secrets[matrix.slack_secret] }}');
+    expect(withEntries['language']).toBe('${{ matrix.language }}');
+  });
+
+  it('app auth mints the token per matrix org', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = parse(generateWorkflow({ ...multi, auth: 'app' })) as any;
+    const steps = parsed['jobs']['report']['steps'];
+    expect(steps[0]['with']['owner']).toBe('${{ matrix.org }}');
+    const include = parsed['jobs']['report']['strategy']['matrix']['include'];
+    expect(include[0]['token_secret']).toBeUndefined();
+  });
+
+  it('matrix with: keys stay inside the input registry (drift guard)', () => {
+    for (const key of Object.keys(buildWithEntries(multi))) {
+      expect(KNOWN_KEYS.has(key), `unknown input "${key}"`).toBe(true);
+    }
+  });
+
+  it('single-org output is untouched when extraOrgs is empty', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = parse(generateWorkflow(makeState())) as any;
+    expect(parsed['jobs']['report']['strategy']).toBeUndefined();
+    expect(parsed['jobs']['report']['steps'].at(-1)['with']['github-token']).toBe(
+      '${{ secrets.ORG_REPORT_GITHUB_TOKEN }}'
+    );
+  });
+
+  it('lint demands a primary org and valid per-row secrets', () => {
+    const errors = lint({ ...multi, org: '', extraOrgs: [{ org: '', tokenSecret: '1bad name', slackSecret: 'OK_S', language: 'en' }] })
+      .filter((w) => w.level === 'error')
+      .map((w) => w.message)
+      .join(' | ');
+    expect(errors).toMatch(/first matrix entry/);
+    expect(errors).toMatch(/#1: organization name is empty/);
+    expect(errors).toMatch(/token secret name/);
+  });
+
+  it('secrets checklist includes each extra org', () => {
+    const names = secretsChecklist(multi).map((s) => s.name);
+    expect(names).toContain('CLIENTEX_TOKEN');
+    expect(names).toContain('CLIENTEX_SLACK');
+  });
+});
+
 describe('generateConfigFile', () => {
   it('is only needed when non-input settings differ from defaults', () => {
     expect(needsConfigFile(makeState())).toBe(false);

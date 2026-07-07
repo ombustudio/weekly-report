@@ -71,6 +71,43 @@ export function lint(state: ConfiguratorState): Warning[] {
     }
   }
 
+  if (state.extraOrgs.length > 0) {
+    if (!state.org.trim()) {
+      warnings.push({
+        level: 'error',
+        message: "Multi-org matrix: fill 'Organization to report on' — it becomes the first matrix entry."
+      });
+    }
+    state.extraOrgs.forEach((entry, i) => {
+      if (!entry.org.trim()) {
+        warnings.push({ level: 'error', message: `Additional org #${i + 1}: organization name is empty.` });
+      }
+      if (state.auth === 'pat' && !VALID_SECRET_NAME.test(entry.tokenSecret)) {
+        warnings.push({
+          level: 'error',
+          message: `Additional org #${i + 1}: token secret name "${entry.tokenSecret}" is invalid.`
+        });
+      }
+      if (state.slackEnabled && !VALID_SECRET_NAME.test(entry.slackSecret)) {
+        warnings.push({
+          level: 'error',
+          message: `Additional org #${i + 1}: Slack secret name "${entry.slackSecret}" is invalid.`
+        });
+      }
+    });
+    if (state.auth === 'app') {
+      warnings.push({
+        level: 'info',
+        message: 'GitHub App + matrix: install the same App on EVERY organization listed — one APP_ID/private key covers all of them.'
+      });
+    } else {
+      warnings.push({
+        level: 'info',
+        message: 'Each org needs its own fine-grained PAT (resource owner = that org) stored under the secret name of its row.'
+      });
+    }
+  }
+
   if (state.timezone !== 'UTC') {
     warnings.push({
       level: 'info',

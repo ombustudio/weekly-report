@@ -38,6 +38,25 @@ export function secretsChecklist(state: ConfiguratorState): SecretItem[] {
     );
   }
 
+  for (const entry of state.extraOrgs) {
+    if (state.auth === 'pat' && entry.tokenSecret) {
+      items.push({
+        name: entry.tokenSecret,
+        kind: 'secret',
+        what: `Org fine-grained PAT for ${entry.org || '(unnamed org)'} — read-only Metadata, Pull requests, Issues, Contents on ALL its repositories.`,
+        how: `Same procedure as the main PAT, but Resource owner = ${entry.org || 'that org'}.`
+      });
+    }
+    if (state.slackEnabled && entry.slackSecret && !items.some((i) => i.name === entry.slackSecret)) {
+      items.push({
+        name: entry.slackSecret,
+        kind: 'secret',
+        what: `Slack incoming webhook for ${entry.org || '(unnamed org)'}'s channel.`,
+        how: 'Same Slack app → Incoming Webhooks → Add new webhook → pick that org/client channel.'
+      });
+    }
+  }
+
   if (state.llm === 'anthropic') {
     items.push({
       name: state.anthropicSecret,

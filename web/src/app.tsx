@@ -18,6 +18,7 @@ import {
   runWorkflowUrl
 } from './generator/links.js';
 import { resetState, restoredFromSave, state, update } from './state.js';
+import type { OrgEntry } from './state.js';
 import type { Cadence, ConfiguratorState } from './state.js';
 
 const HIGHLIGHT_LABELS: Record<HighlightId, string> = {
@@ -198,6 +199,80 @@ export function App() {
             </Field>
             <Field label="Organization to report on" hint="Empty = the owner of the repo running the workflow.">
               <TextInput mono value={v.org} onInput={(x) => set({ org: x })} placeholder="acme" />
+            </Field>
+            <Field
+              label="Additional organizations (matrix)"
+              hint="Each org runs as its own job with its own token — one failing never cancels the others."
+            >
+              <div>
+                {v.extraOrgs.map((entry, i) => {
+                  const patch = (p: Partial<OrgEntry>) => {
+                    const next = v.extraOrgs.slice();
+                    next[i] = { ...entry, ...p };
+                    set({ extraOrgs: next });
+                  };
+                  return (
+                    <div class="org-row" key={i}>
+                      <input
+                        class="mono"
+                        placeholder="org-name"
+                        value={entry.org}
+                        onInput={(e) => patch({ org: (e.target as HTMLInputElement).value })}
+                      />
+                      {v.auth === 'pat' && (
+                        <input
+                          class="mono"
+                          placeholder="TOKEN_SECRET"
+                          value={entry.tokenSecret}
+                          onInput={(e) => patch({ tokenSecret: (e.target as HTMLInputElement).value })}
+                        />
+                      )}
+                      {v.slackEnabled && (
+                        <input
+                          class="mono"
+                          placeholder="SLACK_SECRET"
+                          value={entry.slackSecret}
+                          onInput={(e) => patch({ slackSecret: (e.target as HTMLInputElement).value })}
+                        />
+                      )}
+                      <select
+                        value={entry.language}
+                        onChange={(e) => patch({ language: (e.target as HTMLSelectElement).value as OrgEntry['language'] })}
+                      >
+                        <option value="en">en</option>
+                        <option value="es">es</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="btn"
+                        title="Remove this organization"
+                        onClick={() => set({ extraOrgs: v.extraOrgs.filter((_, j) => j !== i) })}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  class="btn"
+                  onClick={() =>
+                    set({
+                      extraOrgs: [
+                        ...v.extraOrgs,
+                        {
+                          org: '',
+                          tokenSecret: `ORG${v.extraOrgs.length + 2}_REPORT_TOKEN`,
+                          slackSecret: v.slackSecret,
+                          language: v.language
+                        }
+                      ]
+                    })
+                  }
+                >
+                  + Add organization
+                </button>
+              </div>
             </Field>
           </Section>
 
