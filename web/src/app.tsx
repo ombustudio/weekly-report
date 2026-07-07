@@ -113,14 +113,14 @@ function UpdateInGitHubButton(props: { url: string; text: string }) {
       href={props.url}
       target="_blank"
       rel="noopener"
-      title="Copies the file, then opens GitHub's editor — select all, paste, commit."
+      title="For a file that ALREADY exists: copies the new content, then opens GitHub's editor — select all, paste, commit. First time? Use Create in GitHub."
       onClick={() => {
         void navigator.clipboard.writeText(props.text);
         copied.value = true;
         setTimeout(() => (copied.value = false), 2500);
       }}
     >
-      {copied.value ? '✓ Copied — paste & commit' : 'Update in GitHub ↗'}
+      {copied.value ? '✓ Copied — paste & commit' : 'Update existing ↗'}
     </a>
   );
 }
@@ -454,6 +454,7 @@ export function App() {
                       target="_blank"
                       rel="noopener"
                       href={quickCreateUrl(v.targetRepo, WORKFLOW_FILENAME, workflowYaml.value)!}
+                      title="Opens GitHub's new-file editor with this content prefilled — just commit."
                     >
                       Create in GitHub ↗
                     </a>
@@ -493,6 +494,7 @@ export function App() {
                       target="_blank"
                       rel="noopener"
                       href={quickCreateUrl(v.targetRepo, CONFIG_FILENAME, configYaml.value)!}
+                      title="Opens GitHub's new-file editor with this content prefilled — just commit."
                     >
                       Create in GitHub ↗
                     </a>
