@@ -23,7 +23,7 @@ jobs:
             token_secret: ORG_REPORT_GITHUB_TOKEN
             slack_secret: SLACK_WEBHOOK_URL
             language: es
-          - org: clubhaus
+          - org: clubhaus-inc
             token_secret: ORG2_REPORT_TOKEN
             slack_secret: SLACK_WEBHOOK_URL
             language: es
