@@ -3,6 +3,7 @@ import { collectQase } from '../src/qase/collect.js';
 import { aggregate } from '../src/metrics/aggregate.js';
 import { buildReport } from '../src/metrics/report.js';
 import { renderMarkdown } from '../src/render/markdown.js';
+import { buildSlackPayload } from '../src/render/slack.js';
 import { NOW, busyWeek, testConfig } from './fixtures.js';
 import { computeWindow } from '../src/util/time.js';
 
@@ -101,6 +102,10 @@ describe('QA section rendering', () => {
     expect(md).toContain('| **Entraste** | 1 | 40 | 35 | 3 |');
     expect(md).toContain('| Tests ejecutados | 40 |');
     expect(md).toContain('| Tasa de éxito de tests | 89.7% |');
+
+    const slack = JSON.stringify(buildSlackPayload(report).blocks);
+    expect(slack).toContain('🧪 *QA:*');
+    expect(slack).toContain('40 tests ejecutados en 1 corridas');
   });
 
   it('omits the section entirely without Qase data', () => {

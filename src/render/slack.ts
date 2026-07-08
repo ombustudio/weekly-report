@@ -8,7 +8,7 @@
  */
 import { t } from '../i18n/index.js';
 import type { Report } from '../metrics/types.js';
-import { hasTrackedActivity, keyNumberRows, renderHighlight } from './markdown.js';
+import { hasTrackedActivity, keyNumberRows, qaTotalsLine, renderHighlight } from './markdown.js';
 
 const SUMMARY_CHAR_LIMIT = 1800;
 const MAX_FIELDS = 10;
@@ -75,6 +75,15 @@ export function buildSlackPayload(report: Report): SlackPayload {
           type: 'mrkdwn',
           text: `*${escapeMrkdwn(label)}*\n${escapeMrkdwn(value)}`
         }))
+      });
+    }
+
+    // QA line — the key-number grid caps at 10 fields, so Qase gets its own
+    // guaranteed block instead of competing for grid slots.
+    if (report.qa && report.qa.totals.testsExecuted + report.qa.totals.newCases + report.qa.totals.newDefects > 0) {
+      blocks.push({
+        type: 'section',
+        text: { type: 'mrkdwn', text: `🧪 *QA:* ${escapeMrkdwn(qaTotalsLine(report))}` }
       });
     }
 

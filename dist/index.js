@@ -71012,6 +71012,12 @@ ${escapeMrkdwn(value)}`
         }))
       });
     }
+    if (report.qa && report.qa.totals.testsExecuted + report.qa.totals.newCases + report.qa.totals.newDefects > 0) {
+      blocks2.push({
+        type: "section",
+        text: { type: "mrkdwn", text: `\u{1F9EA} *QA:* ${escapeMrkdwn(qaTotalsLine(report))}` }
+      });
+    }
     const top = report.highlights.slice(0, report.slackTopHighlights);
     if (top.length > 0) {
       blocks2.push({ type: "divider" });
