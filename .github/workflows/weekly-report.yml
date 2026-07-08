@@ -26,6 +26,7 @@ jobs:
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           slack-channel: C0BF44GN7TR
+          qase-api-token: ${{ secrets.QASE_API_TOKEN }}
           start-date: ${{ inputs.start-date }}
           end-date: ${{ inputs.end-date }}
 
