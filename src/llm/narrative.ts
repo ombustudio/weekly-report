@@ -149,6 +149,9 @@ export async function generateNarrative(opts: GenerateNarrativeOptions): Promise
 
   let totalInput = 0;
   let totalOutput = 0;
+  // Adaptive-thinking models spend part of this budget thinking; if the first
+  // attempt truncates, retrying with the same cap would fail identically.
+  let outputBudget = config.llm.maxOutputTokens;
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
@@ -156,7 +159,7 @@ export async function generateNarrative(opts: GenerateNarrativeOptions): Promise
         model,
         system,
         user: prompt,
-        maxOutputTokens: config.llm.maxOutputTokens,
+        maxOutputTokens: outputBudget,
         schema: NARRATIVE_SCHEMA
       });
       totalInput += result.inputTokens;
@@ -185,6 +188,11 @@ export async function generateNarrative(opts: GenerateNarrativeOptions): Promise
       const message = error instanceof Error ? error.message : String(error);
       notes.push(`Attempt ${attempt}: ${message}`);
       if (error instanceof LlmError) {
+        // Truncation: double the output budget so the retry can actually fit.
+        if (/max_tokens|truncated/i.test(message)) {
+          outputBudget = Math.min(outputBudget * 2, 16000);
+          continue;
+        }
         // Client errors (bad key, bad model, invalid request) won't fix
         // themselves on an identical retry.
         if (error.status !== undefined && !error.retryable) break;

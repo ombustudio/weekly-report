@@ -67163,7 +67163,7 @@ var CONFIG_DEFAULTS = {
     provider: "auto",
     model: "",
     maxInputTokens: 16e3,
-    maxOutputTokens: 2e3,
+    maxOutputTokens: 8e3,
     titlesPerRepo: 10,
     tone: "professional-warm",
     audience: "mixed",
@@ -69905,13 +69905,14 @@ async function generateNarrative(opts) {
   const knownRepos = new Set(opts.data.repos.map((r) => r.name));
   let totalInput = 0;
   let totalOutput = 0;
+  let outputBudget = config.llm.maxOutputTokens;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
       const result = await adapter.call({
         model,
         system,
         user: prompt,
-        maxOutputTokens: config.llm.maxOutputTokens,
+        maxOutputTokens: outputBudget,
         schema: NARRATIVE_SCHEMA
       });
       totalInput += result.inputTokens;
@@ -69938,6 +69939,10 @@ async function generateNarrative(opts) {
       const message = error2 instanceof Error ? error2.message : String(error2);
       notes.push(`Attempt ${attempt}: ${message}`);
       if (error2 instanceof LlmError) {
+        if (/max_tokens|truncated/i.test(message)) {
+          outputBudget = Math.min(outputBudget * 2, 16e3);
+          continue;
+        }
         if (error2.status !== void 0 && !error2.retryable) break;
         if (error2.retryable && attempt < 2) await sleep(2e3);
       }

@@ -161,7 +161,7 @@ export const CONFIG_DEFAULTS: ConfigDefaults = {
     provider: 'auto',
     model: '',
     maxInputTokens: 16000,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 8000,
     titlesPerRepo: 10,
     tone: 'professional-warm',
     audience: 'mixed',

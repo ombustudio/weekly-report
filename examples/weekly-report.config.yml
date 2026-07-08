@@ -45,7 +45,7 @@ llm:
   provider: auto # auto | anthropic | openai | none
   model: '' # empty = provider default
   max-input-tokens: 16000
-  max-output-tokens: 2000
+  max-output-tokens: 8000 # cap for thinking + narrative; only what's used is billed
   titles-per-repo: 10
   tone: professional-warm # professional-warm | neutral | playful
   audience: mixed # non-technical | mixed | technical — how much jargon the summary may use
