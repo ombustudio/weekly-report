@@ -48,6 +48,11 @@ export function buildConfigObject(state: ConfiguratorState): Record<string, unkn
   }
   if (Object.keys(branches).length > 0) config.branches = branches;
 
+  if (state.qaseEnabled) {
+    const projects = csv(state.qaseProjects);
+    if (projects.length > 0) config.qase = { projects };
+  }
+
   const people: Record<string, unknown> = {};
   if (!state.excludeBots) people['exclude-bots'] = false;
   const excluded = state.peopleExclude

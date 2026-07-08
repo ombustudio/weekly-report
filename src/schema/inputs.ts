@@ -234,6 +234,16 @@ export const INPUT_DEFS: readonly InputDef[] = [
     group: 'delivery'
   },
 
+  {
+    key: 'qase-api-token',
+    description:
+      'Qase API token — adds a "QA & Testing" section: test runs executed in the window, pass rate, new test cases and defects. Scope projects via the config file (qase.projects).',
+    required: false,
+    secret: true,
+    suggestedSecretName: 'QASE_API_TOKEN',
+    group: 'delivery'
+  },
+
   // --- Misc ---
   {
     key: 'config-file',

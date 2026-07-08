@@ -481,6 +481,21 @@ export function App() {
               onChange={(x) => set({ listMergedPrs: x })}
               label="Detailed list of every merged PR per repo (client-ready)"
             />
+            <Toggle
+              checked={v.qaseEnabled}
+              onChange={(x) => set({ qaseEnabled: x })}
+              label="QA & Testing section from Qase (runs, pass rate, new cases, defects)"
+            />
+            {v.qaseEnabled && (
+              <div class="row">
+                <Field label="Secret name for the Qase token">
+                  <TextInput mono value={v.qaseSecret} onInput={(x) => set({ qaseSecret: x })} />
+                </Field>
+                <Field label="Qase projects (optional)" hint="Project codes, comma-separated. Empty = all.">
+                  <TextInput mono value={v.qaseProjects} onInput={(x) => set({ qaseProjects: x })} placeholder="ENT, WEB" />
+                </Field>
+              </div>
+            )}
           </Section>
 
           <Section step={5} title="LLM narrative">

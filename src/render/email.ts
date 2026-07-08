@@ -4,7 +4,7 @@
  */
 import { humanDuration, shortDate, t } from '../i18n/index.js';
 import type { Report } from '../metrics/types.js';
-import { hasTrackedActivity, keyNumberRows, renderHighlight } from './markdown.js';
+import { hasTrackedActivity, keyNumberRows, qaTotalsLine, renderHighlight } from './markdown.js';
 
 function escapeHtml(s: string): string {
   return s
@@ -182,6 +182,34 @@ export function renderEmailHtml(report: Report): string {
     if (report.narrative?.teamNote) {
       parts.push(`<p style="font-size:14px;color:#1f2328;">${escapeHtml(report.narrative.teamNote)}</p>`);
     }
+  }
+
+  // QA & Testing (Qase)
+  if (report.qa && report.qa.projects.length > 0) {
+    parts.push(sectionTitle(t(lang, 'section.qa')));
+    parts.push(`<p style="font-size:14px;color:#1f2328;">${escapeHtml(qaTotalsLine(report))}</p>`);
+    parts.push(
+      table(
+        [
+          t(lang, 'qa.project'),
+          t(lang, 'qa.runs'),
+          t(lang, 'qa.tests'),
+          t(lang, 'qa.passed'),
+          t(lang, 'qa.failed'),
+          t(lang, 'qa.newCases'),
+          t(lang, 'qa.openDefects')
+        ],
+        report.qa.projects.map((p) => [
+          `<strong>${escapeHtml(p.title)}</strong>`,
+          n(p.runs),
+          n(p.testsExecuted),
+          n(p.passed),
+          n(p.failed),
+          n(p.newCases),
+          n(p.openDefects)
+        ])
+      )
+    );
   }
 
   // Appendix line + run link

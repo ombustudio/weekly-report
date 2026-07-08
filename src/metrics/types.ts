@@ -3,6 +3,7 @@
  * from here; the LLM never computes or restates figures on its own.
  */
 import type { HighlightId, Language, ResolvedConfig } from '../schema/index.js';
+import type { QaData } from '../qase/collect.js';
 import type { ReportWindow } from '../util/time.js';
 
 export interface OrgMetrics {
@@ -122,6 +123,8 @@ export interface Report {
   /** Per-repo merged-PR detail (client-ready), empty when disabled. */
   mergedPrsByRepo: MergedPrGroup[];
   enabledHighlightIds: HighlightId[];
+  /** Qase QA metrics — null when no token was provided. */
+  qa: QaData | null;
   narrative: Narrative | null;
   narrativeStatus: NarrativeStatus;
   llmUsage: LlmUsage | null;

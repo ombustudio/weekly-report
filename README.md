@@ -69,6 +69,7 @@ Store it as a secret (e.g. `ORG_REPORT_GITHUB_TOKEN`) and pass it as `github-tok
 | `repos-include` / `repos-exclude` | `*` / — | Repo-name globs. |
 | `slack-webhook-url` | — | Slack incoming webhook. |
 | `resend-api-key` | — | Resend API key for email. |
+| `qase-api-token` | — | Adds a **QA & Testing** section from [Qase](https://qase.io): runs executed, pass rate, new cases, defects (scope with `qase.projects` in the config file). |
 | `email-to` / `email-from` | — | Recipients (comma-separated) and verified sender. Required with `resend-api-key`. |
 | `email-subject` | `{org} engineering report — {period-label}` | Placeholders: `{org}` `{start}` `{end}` `{period-label}`. |
 | `config-file` | `.github/weekly-report.yml` | Optional rich config, fetched via the API (no checkout needed). |

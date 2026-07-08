@@ -25,6 +25,7 @@ import { deliverToSlack } from './deliver/slack.js';
 import { uploadReportArtifact, writeJobSummary, writeReportFiles } from './deliver/outputs.js';
 import { uploadPdfToSlack } from './deliver/slack-file.js';
 import { generatePdf } from './render/pdf.js';
+import { collectQase } from './qase/collect.js';
 import { join } from 'node:path';
 import { ActionError } from './errors.js';
 import { biweeklyShouldRun, computeWindow } from './util/time.js';
@@ -50,7 +51,7 @@ export async function run(): Promise<void> {
   // --- Config: token + config file first, then full resolution ---
   const rawTokens = parseList(core.getInput('github-token'));
   const configFilePath = core.getInput('config-file') || '.github/weekly-report.yml';
-  for (const key of ['anthropic-api-key', 'openai-api-key', 'slack-webhook-url', 'slack-bot-token', 'resend-api-key']) {
+  for (const key of ['anthropic-api-key', 'openai-api-key', 'slack-webhook-url', 'slack-bot-token', 'resend-api-key', 'qase-api-token']) {
     const value = core.getInput(key);
     if (value) core.setSecret(value);
   }
@@ -110,6 +111,20 @@ export async function run(): Promise<void> {
   const metrics = aggregate(data, config);
   const highlights = computeHighlights(data, metrics, config, nowMs);
 
+  // --- QA metrics from Qase (optional; never fails the run) ---
+  let qa = null;
+  if (config.qase.apiToken) {
+    try {
+      qa = await collectQase(config, window);
+      if (qa) {
+        for (const warning of qa.warnings) core.warning(warning);
+        core.info(`Qase: ${qa.totals.testsExecuted} tests in ${qa.totals.runs} runs across ${qa.projects.length} projects.`);
+      }
+    } catch (error) {
+      core.warning(`Qase collection failed — continuing without the QA section: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   // --- LLM narrative (never fails the run) ---
   let narrative = null;
   let narrativeStatus: NarrativeStatus;
@@ -126,7 +141,7 @@ export async function run(): Promise<void> {
       core.warning('No LLM API key configured — generating a metrics-only report. Add anthropic-api-key or openai-api-key for a narrative.');
     }
   } else {
-    const outcome = await generateNarrative({ data, metrics, highlights, config });
+    const outcome = await generateNarrative({ data, metrics, highlights, config, qa });
     for (const note of outcome.notes) core.info(`LLM: ${note}`);
     narrative = outcome.narrative;
     narrativeStatus = outcome.status === 'ok' ? 'ok' : 'failed';
@@ -142,7 +157,7 @@ export async function run(): Promise<void> {
     }
   }
 
-  const report = buildReport({ data, metrics, highlights, config, narrative, narrativeStatus, llmUsage, runUrl: runUrl() });
+  const report = buildReport({ data, metrics, highlights, config, narrative, narrativeStatus, llmUsage, runUrl: runUrl(), qa });
 
   // --- Render ---
   const markdown = renderMarkdown(report);

@@ -85,7 +85,25 @@ export function keyNumberRows(report: Report): Array<[string, string]> {
   if (m.medianTimeToMergeHours !== null) {
     rows.push([t(lang, 'metric.medianTimeToMerge'), humanDuration(m.medianTimeToMergeHours, lang)]);
   }
+  if (report.qa && report.qa.totals.testsExecuted > 0) {
+    rows.push([t(lang, 'metric.testsExecuted'), n(report.qa.totals.testsExecuted)]);
+    if (report.qa.totals.passRate !== null) {
+      rows.push([t(lang, 'metric.passRate'), `${report.qa.totals.passRate}%`]);
+    }
+  }
   return rows;
+}
+
+export function qaTotalsLine(report: Report): string {
+  const lang = report.language;
+  const totals = report.qa!.totals;
+  return t(lang, 'qa.totals', {
+    tests: n(totals.testsExecuted),
+    runs: n(totals.runs),
+    passed: n(totals.passed),
+    failed: n(totals.failed),
+    passRate: totals.passRate !== null ? t(lang, 'qa.passRateSuffix', { rate: totals.passRate }) : ''
+  });
 }
 
 export function renderMarkdown(report: Report): string {
@@ -208,6 +226,27 @@ export function renderMarkdown(report: Report): string {
       lines.push(report.narrative.teamNote.trim());
       lines.push('');
     }
+  }
+
+  // 5b. QA & Testing (Qase)
+  if (report.qa && report.qa.projects.length > 0) {
+    lines.push(`## ${t(lang, 'section.qa')}`);
+    lines.push('');
+    lines.push(qaTotalsLine(report));
+    lines.push('');
+    lines.push(
+      `| ${t(lang, 'qa.project')} | ${t(lang, 'qa.runs')} | ${t(lang, 'qa.tests')} | ${t(lang, 'qa.passed')} | ` +
+        `${t(lang, 'qa.failed')} | ${t(lang, 'qa.blockedSkipped')} | ${t(lang, 'qa.newCases')} | ` +
+        `${t(lang, 'qa.newDefects')} | ${t(lang, 'qa.openDefects')} |`
+    );
+    lines.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|');
+    for (const p of report.qa.projects) {
+      lines.push(
+        `| **${mdEscapeInline(p.title)}** | ${n(p.runs)} | ${n(p.testsExecuted)} | ${n(p.passed)} | ${n(p.failed)} | ` +
+          `${n(p.blocked)}/${n(p.skipped)} | ${n(p.newCases)} | ${n(p.newDefects)} | ${n(p.openDefects)} |`
+      );
+    }
+    lines.push('');
   }
 
   // 6. Appendix

@@ -134,6 +134,13 @@ export const configFileSchema = z
       .strict()
       .optional(),
 
+    qase: z
+      .object({
+        projects: z.array(z.string()).optional()
+      })
+      .strict()
+      .optional(),
+
     limits: z
       .object({
         'max-repos': z.number().int().positive().optional(),

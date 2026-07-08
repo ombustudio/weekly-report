@@ -199,6 +199,16 @@ describe('multi-org consolidated (default mode)', () => {
   });
 });
 
+describe('qase integration', () => {
+  it('emits the token input and optional projects config', () => {
+    const state = makeState({ qaseEnabled: true, qaseProjects: 'ENT, WEB' });
+    expect(buildWithEntries(state)['qase-api-token']).toBe('${{ secrets.QASE_API_TOKEN }}');
+    expect(buildConfigObject(state)['qase']).toEqual({ projects: ['ENT', 'WEB'] });
+    expect(buildConfigObject(makeState({ qaseEnabled: true }))['qase']).toBeUndefined(); // all projects = no config needed
+    expect(secretsChecklist(state).map((s) => s.name)).toContain('QASE_API_TOKEN');
+  });
+});
+
 describe('generateConfigFile', () => {
   it('is only needed when non-input settings differ from defaults', () => {
     expect(needsConfigFile(makeState())).toBe(false);

@@ -61,6 +61,9 @@ email:
   reply-to: ''
   subject: '{org} engineering report — {period-label}'
 
+qase: # only used when the qase-api-token input is set
+  projects: [] # Qase project codes; empty = every project the token can read
+
 limits:
   max-repos: 200
   max-prs: 1000

@@ -73,6 +73,10 @@ export interface ConfiguratorState {
   resendSecret: string;
   emailTo: string;
   emailFrom: string;
+
+  qaseEnabled: boolean;
+  qaseSecret: string;
+  qaseProjects: string;
 }
 
 export const DEFAULT_STATE: ConfiguratorState = {
@@ -124,7 +128,11 @@ export const DEFAULT_STATE: ConfiguratorState = {
   emailEnabled: false,
   resendSecret: inputDef('resend-api-key').suggestedSecretName ?? 'RESEND_API_KEY',
   emailTo: '',
-  emailFrom: ''
+  emailFrom: '',
+
+  qaseEnabled: false,
+  qaseSecret: inputDef('qase-api-token').suggestedSecretName ?? 'QASE_API_TOKEN',
+  qaseProjects: ''
 };
 
 // ---------------------------------------------------------------------------

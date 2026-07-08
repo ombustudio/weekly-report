@@ -345,6 +345,11 @@ export function resolveConfig(opts: ResolveOptions): ResolvedConfig {
       )
     },
 
+    qase: {
+      apiToken: values['qase-api-token'] || undefined,
+      projects: file.qase?.projects ?? d.qase.projects
+    },
+
     limits: {
       maxRepos: file.limits?.['max-repos'] ?? d.limits.maxRepos,
       maxPrs: file.limits?.['max-prs'] ?? d.limits.maxPrs

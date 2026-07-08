@@ -13,6 +13,7 @@ import type { CollectedData } from '../github/types.js';
 import type { AggregatedMetrics } from '../metrics/aggregate.js';
 import type { HighlightData } from '../metrics/types.js';
 import type { ResolvedConfig } from '../schema/index.js';
+import type { QaData } from '../qase/collect.js';
 
 const TITLE_MAX_CHARS = 120;
 
@@ -75,6 +76,7 @@ export function buildSystemPrompt(config: ResolvedConfig): string {
 interface PromptData {
   period: { start: string; end: string; label: string };
   org_totals: Record<string, number | string | null>;
+  qa?: Record<string, number | string | null>;
   highlights: string[];
   repos: Array<Record<string, unknown>>;
   contributors: Array<Record<string, unknown>>;
@@ -93,7 +95,8 @@ export function buildUserPrompt(
   data: CollectedData,
   metrics: AggregatedMetrics,
   highlights: HighlightData[],
-  config: ResolvedConfig
+  config: ResolvedConfig,
+  qa?: QaData | null
 ): { prompt: string; truncationNotes: string[] } {
   const notes: string[] = [];
   const activeRepos = metrics.byRepo.filter((r) => r.activityScore > 0);
@@ -127,8 +130,22 @@ export function buildUserPrompt(
     }
   });
 
+  const qaSummary =
+    qa && qa.totals.testsExecuted + qa.totals.newCases + qa.totals.newDefects > 0
+      ? {
+          tests_executed: qa.totals.testsExecuted,
+          tests_passed: qa.totals.passed,
+          tests_failed: qa.totals.failed,
+          test_runs: qa.totals.runs,
+          new_test_cases: qa.totals.newCases,
+          new_defects: qa.totals.newDefects,
+          pass_rate_pct: qa.totals.passRate
+        }
+      : undefined;
+
   const build = (opts: { titleRepos: number; people: number; repos: number }): PromptData => ({
     period: { start: data.window.startDate, end: data.window.endDate, label: data.window.period },
+    qa: qaSummary,
     org_totals: {
       prs_opened: metrics.org.prsOpened,
       prs_merged: metrics.org.prsMerged,

@@ -133,6 +133,8 @@ export function buildWithEntries(state: ConfiguratorState): Record<string, strin
     if (state.emailFrom.trim()) entries['email-from'] = state.emailFrom.trim();
   }
 
+  if (state.qaseEnabled) entries['qase-api-token'] = `\${{ secrets.${state.qaseSecret} }}`;
+
   // Manual runs with a custom window
   entries['start-date'] = '${{ inputs.start-date }}';
   entries['end-date'] = '${{ inputs.end-date }}';

@@ -79,6 +79,9 @@ inputs:
   email-subject:
     description: "Subject template. Placeholders: {org} {start} {end} {period-label}."
     default: "{org} engineering report — {period-label}"
+  qase-api-token:
+    description: 'Qase API token — adds a "QA & Testing" section: test runs executed in the window, pass
+      rate, new test cases and defects. Scope projects via the config file (qase.projects).'
   config-file:
     description: Path (in this repo) of the optional rich config file, fetched via the Contents API at
       runtime — no checkout needed.

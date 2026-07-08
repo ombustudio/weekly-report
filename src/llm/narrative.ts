@@ -4,6 +4,7 @@
  * action — the deterministic report ships regardless.
  */
 import type { CollectedData } from '../github/types.js';
+import type { QaData } from '../qase/collect.js';
 import type { AggregatedMetrics } from '../metrics/aggregate.js';
 import type { HighlightData, LlmUsage, Narrative } from '../metrics/types.js';
 import { DEFAULT_MODELS } from '../schema/index.js';
@@ -128,6 +129,7 @@ export interface GenerateNarrativeOptions {
   metrics: AggregatedMetrics;
   highlights: HighlightData[];
   config: ResolvedConfig;
+  qa?: QaData | null;
   fetchImpl?: typeof fetch;
 }
 
@@ -141,7 +143,7 @@ export async function generateNarrative(opts: GenerateNarrativeOptions): Promise
 
   const model = resolveModel(config);
   const system = buildSystemPrompt(config);
-  const { prompt, truncationNotes } = buildUserPrompt(opts.data, opts.metrics, opts.highlights, config);
+  const { prompt, truncationNotes } = buildUserPrompt(opts.data, opts.metrics, opts.highlights, config, opts.qa);
   notes.push(...truncationNotes);
 
   const knownLogins = new Set(opts.metrics.byPerson.map((p) => p.login));

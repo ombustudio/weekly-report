@@ -8,6 +8,7 @@ import { periodLabel } from '../i18n/index.js';
 import type { ResolvedConfig } from '../schema/index.js';
 import type { AggregatedMetrics } from './aggregate.js';
 import type { HighlightData, LlmUsage, MergedPrGroup, Narrative, NarrativeStatus, Report } from './types.js';
+import type { QaData } from '../qase/collect.js';
 
 export interface BuildReportOptions {
   data: CollectedData;
@@ -18,6 +19,7 @@ export interface BuildReportOptions {
   narrativeStatus: NarrativeStatus;
   llmUsage: LlmUsage | null;
   runUrl: string;
+  qa?: QaData | null;
 }
 
 export function buildReport(opts: BuildReportOptions): Report {
@@ -87,6 +89,7 @@ export function buildReport(opts: BuildReportOptions): Report {
     repoLongTail,
     personMetrics: metrics.byPerson.slice(0, config.people.maxListed),
     highlights: opts.highlights,
+    qa: opts.qa ?? null,
     mergedPrsByRepo,
     enabledHighlightIds: enabledHighlights(config),
     narrative: opts.narrative,

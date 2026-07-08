@@ -92,6 +92,15 @@ export function secretsChecklist(state: ConfiguratorState): SecretItem[] {
     });
   }
 
+  if (state.qaseEnabled) {
+    items.push({
+      name: state.qaseSecret,
+      kind: 'secret',
+      what: 'Qase API token — adds the QA & Testing section (runs, pass rate, new cases, defects).',
+      how: 'app.qase.io → click your avatar → API tokens → create. It reads every project the account can access; scope with the projects field.'
+    });
+  }
+
   if (state.emailEnabled) {
     items.push({
       name: state.resendSecret,

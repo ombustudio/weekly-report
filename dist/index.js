@@ -62958,6 +62958,14 @@ var INPUT_DEFS = [
     secret: false,
     group: "delivery"
   },
+  {
+    key: "qase-api-token",
+    description: 'Qase API token \u2014 adds a "QA & Testing" section: test runs executed in the window, pass rate, new test cases and defects. Scope projects via the config file (qase.projects).',
+    required: false,
+    secret: true,
+    suggestedSecretName: "QASE_API_TOKEN",
+    group: "delivery"
+  },
   // --- Misc ---
   {
     key: "config-file",
@@ -67122,6 +67130,9 @@ var configFileSchema = external_exports.object({
     "reply-to": external_exports.string().optional(),
     subject: external_exports.string().optional()
   }).strict().optional(),
+  qase: external_exports.object({
+    projects: external_exports.array(external_exports.string()).optional()
+  }).strict().optional(),
   limits: external_exports.object({
     "max-repos": external_exports.number().int().positive().optional(),
     "max-prs": external_exports.number().int().positive().optional()
@@ -67171,6 +67182,7 @@ var CONFIG_DEFAULTS = {
   },
   slack: { channel: "", topHighlights: 3, reportUrl: "" },
   email: { to: [], from: "", replyTo: "", subject: "{org} engineering report \u2014 {period-label}" },
+  qase: { projects: [] },
   limits: { maxRepos: 200, maxPrs: 1e3 },
   // {org} resolves at runtime — keeps artifact names unique in multi-org matrix runs
   output: { jobSummary: true, artifact: true, artifactName: "weekly-report-{org}" }
@@ -67653,6 +67665,10 @@ function resolveConfig(opts) {
         file.email?.subject,
         d.email.subject
       )
+    },
+    qase: {
+      apiToken: values["qase-api-token"] || void 0,
+      projects: file.qase?.projects ?? d.qase.projects
     },
     limits: {
       maxRepos: file.limits?.["max-repos"] ?? d.limits.maxRepos,
@@ -69715,7 +69731,7 @@ function buildSystemPrompt(config) {
   }
   return lines.join("\n");
 }
-function buildUserPrompt(data, metrics, highlights, config) {
+function buildUserPrompt(data, metrics, highlights, config, qa) {
   const notes = [];
   const activeRepos = metrics.byRepo.filter((r) => r.activityScore > 0);
   const narratedRepos = activeRepos.slice(0, config.report.narratedRepos).map((r) => r.repo);
@@ -69745,8 +69761,18 @@ function buildUserPrompt(data, metrics, highlights, config) {
         return `most-active-repo: ${h.repo}`;
     }
   });
+  const qaSummary = qa && qa.totals.testsExecuted + qa.totals.newCases + qa.totals.newDefects > 0 ? {
+    tests_executed: qa.totals.testsExecuted,
+    tests_passed: qa.totals.passed,
+    tests_failed: qa.totals.failed,
+    test_runs: qa.totals.runs,
+    new_test_cases: qa.totals.newCases,
+    new_defects: qa.totals.newDefects,
+    pass_rate_pct: qa.totals.passRate
+  } : void 0;
   const build = (opts) => ({
     period: { start: data.window.startDate, end: data.window.endDate, label: data.window.period },
+    qa: qaSummary,
     org_totals: {
       prs_opened: metrics.org.prsOpened,
       prs_merged: metrics.org.prsMerged,
@@ -69899,7 +69925,7 @@ async function generateNarrative(opts) {
   }
   const model = resolveModel(config);
   const system = buildSystemPrompt(config);
-  const { prompt, truncationNotes } = buildUserPrompt(opts.data, opts.metrics, opts.highlights, config);
+  const { prompt, truncationNotes } = buildUserPrompt(opts.data, opts.metrics, opts.highlights, config, opts.qa);
   notes.push(...truncationNotes);
   const knownLogins = new Set(opts.metrics.byPerson.map((p) => p.login));
   const knownRepos = new Set(opts.data.repos.map((r) => r.name));
@@ -70204,6 +70230,7 @@ var STRINGS = {
     "section.repoActivity": "Repository Activity",
     "section.contributors": "Contributors",
     "section.appendix": "Appendix \u2014 methodology & caveats",
+    "section.qa": "\u{1F9EA} QA & Testing",
     // Key numbers labels
     "metric.prsOpened": "PRs opened",
     "metric.prsMerged": "PRs merged",
@@ -70218,6 +70245,8 @@ var STRINGS = {
     "metric.medianTimeToMerge": "Median time to merge",
     "metric.activeContributors": "Active contributors",
     "metric.activeRepos": "Active repos",
+    "metric.testsExecuted": "Tests executed",
+    "metric.passRate": "Test pass rate",
     // Table headers
     "table.repo": "Repository",
     "table.person": "Contributor",
@@ -70232,6 +70261,17 @@ var STRINGS = {
     "table.reviews": "Reviews",
     "table.merges": "Merges",
     "table.longTail": "\u2026and {count} more repos ({prsMerged} PRs merged, {commits} commits)",
+    "qa.totals": "{tests} tests executed across {runs} runs \u2014 {passed} passed, {failed} failed{passRate}.",
+    "qa.passRateSuffix": " ({rate}% pass rate)",
+    "qa.project": "Project",
+    "qa.runs": "Runs",
+    "qa.tests": "Tests",
+    "qa.passed": "Passed",
+    "qa.failed": "Failed",
+    "qa.blockedSkipped": "Blocked/Skipped",
+    "qa.newCases": "New cases",
+    "qa.newDefects": "New defects",
+    "qa.openDefects": "Open defects",
     // Highlights
     "highlight.oldest-open-pr": "\u{1F570}\uFE0F **Oldest open PR**: [{repo}#{number}]({url}) \u201C{title}\u201D by @{author} \u2014 open for {ageDays} days.",
     "highlight.top-merger": "\u{1F6A2} **Top merger**: {entries}.",
@@ -70290,6 +70330,7 @@ var STRINGS = {
     "section.repoActivity": "Actividad por Repositorio",
     "section.contributors": "Contribuidores",
     "section.appendix": "Ap\xE9ndice \u2014 metodolog\xEDa y salvedades",
+    "section.qa": "\u{1F9EA} QA y Testing",
     "metric.prsOpened": "PRs abiertos",
     "metric.prsMerged": "PRs mergeados",
     "metric.mergedToProduction": "Mergeados a producci\xF3n",
@@ -70303,6 +70344,8 @@ var STRINGS = {
     "metric.medianTimeToMerge": "Mediana de tiempo a merge",
     "metric.activeContributors": "Contribuidores activos",
     "metric.activeRepos": "Repos activos",
+    "metric.testsExecuted": "Tests ejecutados",
+    "metric.passRate": "Tasa de \xE9xito de tests",
     "table.repo": "Repositorio",
     "table.person": "Contribuidor",
     "table.prsOpened": "PRs abiertos",
@@ -70316,6 +70359,17 @@ var STRINGS = {
     "table.reviews": "Reviews",
     "table.merges": "Merges",
     "table.longTail": "\u2026y {count} repos m\xE1s ({prsMerged} PRs mergeados, {commits} commits)",
+    "qa.totals": "{tests} tests ejecutados en {runs} corridas \u2014 {passed} pasaron, {failed} fallaron{passRate}.",
+    "qa.passRateSuffix": " ({rate}% de \xE9xito)",
+    "qa.project": "Proyecto",
+    "qa.runs": "Corridas",
+    "qa.tests": "Tests",
+    "qa.passed": "Pasaron",
+    "qa.failed": "Fallaron",
+    "qa.blockedSkipped": "Bloqueados/Salteados",
+    "qa.newCases": "Casos nuevos",
+    "qa.newDefects": "Defectos nuevos",
+    "qa.openDefects": "Defectos abiertos",
     "highlight.oldest-open-pr": "\u{1F570}\uFE0F **PR abierto m\xE1s antiguo**: [{repo}#{number}]({url}) \u201C{title}\u201D de @{author} \u2014 abierto hace {ageDays} d\xEDas.",
     "highlight.top-merger": "\u{1F6A2} **Quien m\xE1s mergea**: {entries}.",
     "highlight.top-reviewer": "\u{1F50D} **Top reviewer**: {entries}.",
@@ -70464,6 +70518,7 @@ function buildReport(opts) {
     repoLongTail,
     personMetrics: metrics.byPerson.slice(0, config.people.maxListed),
     highlights: opts.highlights,
+    qa: opts.qa ?? null,
     mergedPrsByRepo,
     enabledHighlightIds: enabledHighlights(config),
     narrative: opts.narrative,
@@ -70545,7 +70600,24 @@ function keyNumberRows(report) {
   if (m.medianTimeToMergeHours !== null) {
     rows.push([t(lang, "metric.medianTimeToMerge"), humanDuration(m.medianTimeToMergeHours, lang)]);
   }
+  if (report.qa && report.qa.totals.testsExecuted > 0) {
+    rows.push([t(lang, "metric.testsExecuted"), n(report.qa.totals.testsExecuted)]);
+    if (report.qa.totals.passRate !== null) {
+      rows.push([t(lang, "metric.passRate"), `${report.qa.totals.passRate}%`]);
+    }
+  }
   return rows;
+}
+function qaTotalsLine(report) {
+  const lang = report.language;
+  const totals = report.qa.totals;
+  return t(lang, "qa.totals", {
+    tests: n(totals.testsExecuted),
+    runs: n(totals.runs),
+    passed: n(totals.passed),
+    failed: n(totals.failed),
+    passRate: totals.passRate !== null ? t(lang, "qa.passRateSuffix", { rate: totals.passRate }) : ""
+  });
 }
 function renderMarkdown(report) {
   const lang = report.language;
@@ -70650,6 +70722,22 @@ function renderMarkdown(report) {
       lines.push(report.narrative.teamNote.trim());
       lines.push("");
     }
+  }
+  if (report.qa && report.qa.projects.length > 0) {
+    lines.push(`## ${t(lang, "section.qa")}`);
+    lines.push("");
+    lines.push(qaTotalsLine(report));
+    lines.push("");
+    lines.push(
+      `| ${t(lang, "qa.project")} | ${t(lang, "qa.runs")} | ${t(lang, "qa.tests")} | ${t(lang, "qa.passed")} | ${t(lang, "qa.failed")} | ${t(lang, "qa.blockedSkipped")} | ${t(lang, "qa.newCases")} | ${t(lang, "qa.newDefects")} | ${t(lang, "qa.openDefects")} |`
+    );
+    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+    for (const p of report.qa.projects) {
+      lines.push(
+        `| **${mdEscapeInline(p.title)}** | ${n(p.runs)} | ${n(p.testsExecuted)} | ${n(p.passed)} | ${n(p.failed)} | ${n(p.blocked)}/${n(p.skipped)} | ${n(p.newCases)} | ${n(p.newDefects)} | ${n(p.openDefects)} |`
+      );
+    }
+    lines.push("");
   }
   lines.push(`## ${t(lang, "section.appendix")}`);
   lines.push("");
@@ -70824,6 +70912,32 @@ function renderEmailHtml(report) {
     if (report.narrative?.teamNote) {
       parts.push(`<p style="font-size:14px;color:#1f2328;">${escapeHtml(report.narrative.teamNote)}</p>`);
     }
+  }
+  if (report.qa && report.qa.projects.length > 0) {
+    parts.push(sectionTitle(t(lang, "section.qa")));
+    parts.push(`<p style="font-size:14px;color:#1f2328;">${escapeHtml(qaTotalsLine(report))}</p>`);
+    parts.push(
+      table(
+        [
+          t(lang, "qa.project"),
+          t(lang, "qa.runs"),
+          t(lang, "qa.tests"),
+          t(lang, "qa.passed"),
+          t(lang, "qa.failed"),
+          t(lang, "qa.newCases"),
+          t(lang, "qa.openDefects")
+        ],
+        report.qa.projects.map((p) => [
+          `<strong>${escapeHtml(p.title)}</strong>`,
+          n2(p.runs),
+          n2(p.testsExecuted),
+          n2(p.passed),
+          n2(p.failed),
+          n2(p.newCases),
+          n2(p.openDefects)
+        ])
+      )
+    );
   }
   const appendix = [
     t(lang, "appendix.window", {
@@ -113398,6 +113512,7 @@ function writeReportFiles(markdown, html, report) {
         personMetrics: report.personMetrics,
         highlights: report.highlights,
         mergedPrsByRepo: report.mergedPrsByRepo,
+        qa: report.qa,
         narrativeStatus: report.narrativeStatus,
         llmUsage: report.llmUsage,
         warnings: report.warnings
@@ -113533,6 +113648,110 @@ async function generatePdf(htmlPath, pdfPath) {
   }
 }
 
+// src/qase/collect.ts
+var API = "https://api.qase.io/v1";
+var PAGE = 100;
+var CLIENT_FILTER_CAP = 300;
+async function qget(token, path4, params, fetchImpl) {
+  const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])));
+  const response = await fetchImpl(`${API}${path4}?${qs}`, {
+    headers: { Token: token, accept: "application/json" }
+  });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(`Qase rejected the API token (HTTP ${response.status}) \u2014 check qase-api-token.`);
+  }
+  if (!response.ok) throw new Error(`Qase API ${path4} \u2192 HTTP ${response.status}`);
+  const body2 = await response.json();
+  if (!body2.status) throw new Error(`Qase API ${path4}: ${body2.errorMessage ?? "status=false"}`);
+  return { entities: body2.result?.entities ?? [], total: body2.result?.total ?? 0 };
+}
+async function fetchTail(token, path4, fetchImpl, warnings, label) {
+  const probe = await qget(token, path4, { limit: 1 }, fetchImpl);
+  const total = probe.total;
+  const start = Math.max(0, total - CLIENT_FILTER_CAP);
+  if (start > 0) warnings.push(`Qase ${label}: window counts cover the most recent ${CLIENT_FILTER_CAP} of ${total} entries.`);
+  const out = [];
+  for (let offset = start; offset < total; offset += PAGE) {
+    const page = await qget(token, path4, { limit: PAGE, offset }, fetchImpl);
+    out.push(...page.entities);
+    if (page.entities.length === 0) break;
+  }
+  return out;
+}
+function inWindow(iso, window2) {
+  if (iso === null || iso === void 0) return false;
+  const ms = typeof iso === "number" ? iso * 1e3 : Date.parse(iso);
+  return Number.isFinite(ms) && ms >= window2.startUtcMs && ms < window2.endUtcMs;
+}
+async function collectQase(config, window2, fetchImpl = fetch) {
+  const token = config.qase.apiToken;
+  if (!token) return null;
+  const warnings = [];
+  let projects;
+  if (config.qase.projects.length > 0) {
+    projects = config.qase.projects.map((code) => ({ code, title: code }));
+  } else {
+    const listed = await qget(token, "/project", { limit: PAGE }, fetchImpl);
+    projects = listed.entities.map((p) => ({ code: p.code, title: p.title }));
+  }
+  const stats = [];
+  for (const project of projects) {
+    try {
+      const runEntities = [];
+      for (let offset = 0; offset < 300; offset += PAGE) {
+        const page = await qget(
+          token,
+          `/run/${project.code}`,
+          {
+            from_start_time: Math.floor(window2.startUtcMs / 1e3),
+            to_start_time: Math.floor((window2.endUtcMs - 1e3) / 1e3),
+            limit: PAGE,
+            offset
+          },
+          fetchImpl
+        );
+        runEntities.push(...page.entities);
+        if (page.entities.length < PAGE) break;
+      }
+      const sum = (key) => runEntities.reduce((a, r) => a + (r.stats?.[key] ?? 0), 0);
+      const cases = await fetchTail(token, `/case/${project.code}`, fetchImpl, warnings, `${project.code} cases`);
+      const defects = await fetchTail(token, `/defect/${project.code}`, fetchImpl, warnings, `${project.code} defects`);
+      const openDefects = (await qget(token, `/defect/${project.code}`, { status: "open", limit: 1 }, fetchImpl)).total;
+      const entry = {
+        code: project.code,
+        title: project.title,
+        runs: runEntities.length,
+        testsExecuted: sum("total"),
+        passed: sum("passed"),
+        failed: sum("failed"),
+        blocked: sum("blocked"),
+        skipped: sum("skipped"),
+        newCases: cases.filter((c) => inWindow(c.created_at ?? c.created, window2)).length,
+        newDefects: defects.filter((d) => inWindow(d.created_at ?? d.created, window2)).length,
+        openDefects
+      };
+      if (entry.runs + entry.newCases + entry.newDefects + entry.openDefects > 0) stats.push(entry);
+    } catch (error2) {
+      warnings.push(`Qase project ${project.code}: ${error2 instanceof Error ? error2.message : String(error2)}`);
+    }
+  }
+  const total = (key) => stats.reduce((a, p) => a + p[key], 0);
+  const verdicts = total("passed") + total("failed") + total("blocked");
+  const totals = {
+    runs: total("runs"),
+    testsExecuted: total("testsExecuted"),
+    passed: total("passed"),
+    failed: total("failed"),
+    blocked: total("blocked"),
+    skipped: total("skipped"),
+    newCases: total("newCases"),
+    newDefects: total("newDefects"),
+    openDefects: total("openDefects"),
+    passRate: verdicts > 0 ? Math.round(total("passed") / verdicts * 1e3) / 10 : null
+  };
+  return { projects: stats, totals, warnings };
+}
+
 // src/main.ts
 import { join as join3 } from "node:path";
 function runUrl() {
@@ -113548,7 +113767,7 @@ async function run() {
   const nowMs = Date.now();
   const rawTokens = parseList(getInput("github-token"));
   const configFilePath = getInput("config-file") || ".github/weekly-report.yml";
-  for (const key of ["anthropic-api-key", "openai-api-key", "slack-webhook-url", "slack-bot-token", "resend-api-key"]) {
+  for (const key of ["anthropic-api-key", "openai-api-key", "slack-webhook-url", "slack-bot-token", "resend-api-key", "qase-api-token"]) {
     const value = getInput(key);
     if (value) setSecret(value);
   }
@@ -113589,6 +113808,18 @@ async function run() {
   );
   const metrics = aggregate(data, config);
   const highlights = computeHighlights(data, metrics, config, nowMs);
+  let qa = null;
+  if (config.qase.apiToken) {
+    try {
+      qa = await collectQase(config, window2);
+      if (qa) {
+        for (const warning2 of qa.warnings) warning(warning2);
+        info(`Qase: ${qa.totals.testsExecuted} tests in ${qa.totals.runs} runs across ${qa.projects.length} projects.`);
+      }
+    } catch (error2) {
+      warning(`Qase collection failed \u2014 continuing without the QA section: ${error2 instanceof Error ? error2.message : String(error2)}`);
+    }
+  }
   let narrative = null;
   let narrativeStatus;
   let llmUsage = null;
@@ -113601,7 +113832,7 @@ async function run() {
       warning("No LLM API key configured \u2014 generating a metrics-only report. Add anthropic-api-key or openai-api-key for a narrative.");
     }
   } else {
-    const outcome = await generateNarrative({ data, metrics, highlights, config });
+    const outcome = await generateNarrative({ data, metrics, highlights, config, qa });
     for (const note of outcome.notes) info(`LLM: ${note}`);
     narrative = outcome.narrative;
     narrativeStatus = outcome.status === "ok" ? "ok" : "failed";
@@ -113615,7 +113846,7 @@ async function run() {
       warning("LLM narrative failed \u2014 shipping the deterministic report without it. See the log above.");
     }
   }
-  const report = buildReport({ data, metrics, highlights, config, narrative, narrativeStatus, llmUsage, runUrl: runUrl() });
+  const report = buildReport({ data, metrics, highlights, config, narrative, narrativeStatus, llmUsage, runUrl: runUrl(), qa });
   const markdown = renderMarkdown(report);
   const html = renderEmailHtml(report);
   const deliveryStatus = {};

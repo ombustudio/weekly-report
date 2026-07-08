@@ -106,6 +106,12 @@ export interface ResolvedConfig {
     subject: string;
   };
 
+  qase: {
+    apiToken?: string;
+    /** Project codes to include; empty = every project the token can read. */
+    projects: string[];
+  };
+
   limits: { maxRepos: number; maxPrs: number };
 
   output: { jobSummary: boolean; artifact: boolean; artifactName: string };
@@ -128,6 +134,7 @@ export interface ConfigDefaults {
   llm: Omit<ResolvedConfig['llm'], 'anthropicApiKey' | 'openaiApiKey'>;
   slack: Omit<ResolvedConfig['slack'], 'webhookUrl' | 'botToken'>;
   email: Omit<ResolvedConfig['email'], 'resendApiKey'>;
+  qase: Omit<ResolvedConfig['qase'], 'apiToken'>;
   limits: ResolvedConfig['limits'];
   output: ResolvedConfig['output'];
 }
@@ -169,6 +176,7 @@ export const CONFIG_DEFAULTS: ConfigDefaults = {
   },
   slack: { channel: '', topHighlights: 3, reportUrl: '' },
   email: { to: [], from: '', replyTo: '', subject: '{org} engineering report — {period-label}' },
+  qase: { projects: [] },
   limits: { maxRepos: 200, maxPrs: 1000 },
   // {org} resolves at runtime — keeps artifact names unique in multi-org matrix runs
   output: { jobSummary: true, artifact: true, artifactName: 'weekly-report-{org}' }

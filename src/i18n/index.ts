@@ -14,6 +14,7 @@ const STRINGS = {
     'section.repoActivity': 'Repository Activity',
     'section.contributors': 'Contributors',
     'section.appendix': 'Appendix — methodology & caveats',
+    'section.qa': '🧪 QA & Testing',
 
     // Key numbers labels
     'metric.prsOpened': 'PRs opened',
@@ -29,6 +30,8 @@ const STRINGS = {
     'metric.medianTimeToMerge': 'Median time to merge',
     'metric.activeContributors': 'Active contributors',
     'metric.activeRepos': 'Active repos',
+    'metric.testsExecuted': 'Tests executed',
+    'metric.passRate': 'Test pass rate',
 
     // Table headers
     'table.repo': 'Repository',
@@ -44,6 +47,17 @@ const STRINGS = {
     'table.reviews': 'Reviews',
     'table.merges': 'Merges',
     'table.longTail': '…and {count} more repos ({prsMerged} PRs merged, {commits} commits)',
+    'qa.totals': '{tests} tests executed across {runs} runs — {passed} passed, {failed} failed{passRate}.',
+    'qa.passRateSuffix': ' ({rate}% pass rate)',
+    'qa.project': 'Project',
+    'qa.runs': 'Runs',
+    'qa.tests': 'Tests',
+    'qa.passed': 'Passed',
+    'qa.failed': 'Failed',
+    'qa.blockedSkipped': 'Blocked/Skipped',
+    'qa.newCases': 'New cases',
+    'qa.newDefects': 'New defects',
+    'qa.openDefects': 'Open defects',
 
     // Highlights
     'highlight.oldest-open-pr': '🕰️ **Oldest open PR**: [{repo}#{number}]({url}) “{title}” by @{author} — open for {ageDays} days.',
@@ -110,6 +124,7 @@ const STRINGS = {
     'section.repoActivity': 'Actividad por Repositorio',
     'section.contributors': 'Contribuidores',
     'section.appendix': 'Apéndice — metodología y salvedades',
+    'section.qa': '🧪 QA y Testing',
 
     'metric.prsOpened': 'PRs abiertos',
     'metric.prsMerged': 'PRs mergeados',
@@ -124,6 +139,8 @@ const STRINGS = {
     'metric.medianTimeToMerge': 'Mediana de tiempo a merge',
     'metric.activeContributors': 'Contribuidores activos',
     'metric.activeRepos': 'Repos activos',
+    'metric.testsExecuted': 'Tests ejecutados',
+    'metric.passRate': 'Tasa de éxito de tests',
 
     'table.repo': 'Repositorio',
     'table.person': 'Contribuidor',
@@ -138,6 +155,17 @@ const STRINGS = {
     'table.reviews': 'Reviews',
     'table.merges': 'Merges',
     'table.longTail': '…y {count} repos más ({prsMerged} PRs mergeados, {commits} commits)',
+    'qa.totals': '{tests} tests ejecutados en {runs} corridas — {passed} pasaron, {failed} fallaron{passRate}.',
+    'qa.passRateSuffix': ' ({rate}% de éxito)',
+    'qa.project': 'Proyecto',
+    'qa.runs': 'Corridas',
+    'qa.tests': 'Tests',
+    'qa.passed': 'Pasaron',
+    'qa.failed': 'Fallaron',
+    'qa.blockedSkipped': 'Bloqueados/Salteados',
+    'qa.newCases': 'Casos nuevos',
+    'qa.newDefects': 'Defectos nuevos',
+    'qa.openDefects': 'Defectos abiertos',
 
     'highlight.oldest-open-pr': '🕰️ **PR abierto más antiguo**: [{repo}#{number}]({url}) “{title}” de @{author} — abierto hace {ageDays} días.',
     'highlight.top-merger': '🚢 **Quien más mergea**: {entries}.',
